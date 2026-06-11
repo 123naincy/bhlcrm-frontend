@@ -25,14 +25,14 @@ export function UpdateLeadDrawer({
     try {
       setLoading(true);
 
-      await updateLead(lead._id, {
+      const response = await updateLead(lead._id, {
         status,
         temperature,
       });
 
       toast.success("Lead updated successfully");
 
-      onSuccess();
+      onSuccess?.(response?.lead || lead);
       onClose();
 
     } catch (error) {

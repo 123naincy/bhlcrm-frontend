@@ -49,7 +49,7 @@ function LeadList({ mode }: Props) {
   const [reassignLeadId, setReassignLeadId] = useState<string | null>(null);
   const [updateOpen, setUpdateOpen] = useState(false);
   const [reassignOpen, setReassignOpen] = useState(false);
-useEffect(() => {
+  useEffect(() => {
     fetchLeads();
 
     if (mode !== "my") {
@@ -57,21 +57,37 @@ useEffect(() => {
     }
   }, [mode]);
 
-  const fetchLeads = async () => {
+  const getLeadParams = () => ({
+    search: search || undefined,
+    status: status || undefined,
+    temperature: temperature || undefined,
+    assignedTo: selectedUserId || undefined,
+    dateRange: dateRange || undefined,
+    fromDate: fromDate || undefined,
+    toDate: toDate || undefined,
+  });
+
+  const fetchLeads = async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) {
+        setLoading(true);
+      }
 
       let res;
 
+      const params = getLeadParams();
+
       if (mode === "all") {
-        res = await getAllLeads();
+        res = await getAllLeads(params);
       } else if (
         mode === "assigned"
       ) {
         res =
-          await getAssignedLeads();
+          await getAssignedLeads(
+            params
+          );
       } else {
-        res = await getMyLeads();
+        res = await getMyLeads(params);
       }
 
       setLeads(res.leads || []);
@@ -82,7 +98,9 @@ useEffect(() => {
         "Failed to load leads"
       );
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
@@ -105,52 +123,32 @@ useEffect(() => {
     };
 
   const handleFilter = async () => {
-  try {
-    setLoading(true);
+    try {
+      await fetchLeads();
+    } catch (error) {
+      console.error(error);
 
-    let res;
-
-    const params = {
-      search,
-      status,
-      temperature,
-      assignedTo: selectedUserId,
-      dateRange,
-      fromDate,
-      toDate,
-    };
-
-    if (mode === "all") {
-      res = await getAllLeads(
-        params
+      toast.error(
+        "Filter failed"
       );
-    } else if (
-      mode === "assigned"
-    ) {
-      res =
-        await getAssignedLeads(
-          params
-        );
-    } else {
-      res =
-        await getMyLeads(
-          params
-        );
+    }
+  };
+
+  const handleLeadUpdated = (
+    updatedLead: any
+  ) => {
+    if (updatedLead) {
+      setLeads((prev) => [
+        updatedLead,
+        ...prev.filter(
+          (lead) =>
+            lead._id !== updatedLead._id
+        ),
+      ]);
     }
 
-    setLeads(
-      res.leads || []
-    );
-  } catch (error) {
-    console.error(error);
-
-    toast.error(
-      "Filter failed"
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+    void fetchLeads(true);
+  };
 
   const toggleLeadSelection = (
     leadId: string
@@ -327,7 +325,9 @@ useEffect(() => {
 
         <div className="flex gap-3 items-center flex-wrap">
           <button
-            onClick={fetchLeads}
+            onClick={() => {
+              fetchLeads();
+            }}
             className="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg flex items-center gap-2 text-sm hover:bg-slate-300"
             title="Refresh list"
           >
@@ -621,7 +621,7 @@ useEffect(() => {
                 </th>
 
                 <th className="px-6 py-5 text-left">
-                  Created
+                  Last Updated
                 </th>
 
                 <th className="px-6 py-5 text-left">
@@ -728,7 +728,8 @@ useEffect(() => {
 
                   <td className="px-6 py-5">
                     {new Date(
-                      lead.createdAt
+                      lead.updatedAt ||
+                        lead.createdAt
                     ).toLocaleDateString()}
                   </td>
 
@@ -859,10 +860,10 @@ useEffect(() => {
           setEditLead(null);
         }}
         lead={editLead}
-        onSuccess={() => {
+        onSuccess={(updatedLead: any) => {
           setUpdateOpen(false);
           setEditLead(null);
-          fetchLeads();
+          handleLeadUpdated(updatedLead);
         }}
       />
 
