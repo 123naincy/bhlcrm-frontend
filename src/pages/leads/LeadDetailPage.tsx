@@ -63,7 +63,8 @@ export default function LeadDetailPage() {
 
   const canPlayRecording =
     user?.role === "super_admin" ||
-    user?.role === "admin";
+    user?.role === "admin" ||
+    user?.role === "sales_manager";
   const fetchLead = async () => {
     try {
       setLoading(true);
