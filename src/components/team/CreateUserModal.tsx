@@ -57,7 +57,11 @@ export default function CreateUserModal({
       onClose();
     } catch (error) {
       console.error(error);
-      toast.error("Failed to create user");
+      const message =
+        (error as any)?.response?.data?.message ||
+        "Failed to create user";
+
+      toast.error(message);
     } finally {
       setLoading(false);
     }

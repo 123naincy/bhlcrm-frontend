@@ -149,29 +149,42 @@ export const importLeads = async (
 
   return response.data;
 };
-export const getAllLeads =
-  async () => {
-    const response =
-      await api.get(
-        "/leads/all"
-      );
+export const getAllLeads = async (
+  params: any = {}
+) => {
+  const response = await api.get(
+    "/leads/all",
+    {
+      params,
+    }
+  );
 
-    return response.data;
-  };
+  return response.data;
+};
   export const getAssignedLeads =
-  async () => {
+  async (
+    params: any = {}
+  ) => {
     const response =
       await api.get(
-        "/leads/assigned"
+        "/leads/assigned",
+        {
+          params,
+        }
       );
 
     return response.data;
   };
   export const getMyLeads =
-  async () => {
+  async (
+    params: any = {}
+  ) => {
     const response =
       await api.get(
-        "/leads/my"
+        "/leads/my",
+        {
+          params,
+        }
       );
 
     return response.data;

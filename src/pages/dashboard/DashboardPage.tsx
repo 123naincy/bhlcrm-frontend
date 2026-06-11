@@ -34,7 +34,7 @@ import {
   getSourcePerformance,
   getTeamPerformance,
 } from "../../api/dashboardApi";
-
+import ExecutiveDashboard from "./ExecutiveDashboard";
 const COLORS = [
   "#4F46E5",
   "#7C3AED",
@@ -67,40 +67,62 @@ export default function DashboardPage() {
   const [sources, setSources] = useState<any[]>([]);
   const [team, setTeam] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+const user = JSON.parse(
+  localStorage.getItem("user") || "{}"
+);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const statsRes = await getDashboardStats();
-        const sourceRes = await getSourcePerformance();
-        const teamRes = await getTeamPerformance();
+const role = user?.role;
+ useEffect(() => {
+  if (
+    role === "sales_executive" ||
+    role === "telecaller"
+  ) {
+    setLoading(false);
+    return;
+  }
 
-        setStats(statsRes);
-        setSources(
-          sourceRes.sourcePerformance ||
-            sourceRes.performance?.map((row: any) => ({
+  const load = async () => {
+    try {
+      const statsRes =
+        await getDashboardStats();
+
+      const sourceRes =
+        await getSourcePerformance();
+
+      const teamRes =
+        await getTeamPerformance();
+
+      setStats(statsRes);
+
+      setSources(
+        sourceRes.sourcePerformance ||
+          sourceRes.performance?.map(
+            (row: any) => ({
               _id: row.source,
               count: row.totalLeads,
-            })) ||
-            []
-        );
-        setTeam(
-          teamRes.teamPerformance ||
-            teamRes.performance?.map((row: any) => ({
-              name: row.employeeName,
-              leadCount: row.assignedLeads,
-            })) ||
-            []
-        );
-      } catch (error) {
-        console.error(error);
-      } finally {
-        setLoading(false);
-      }
-    };
+            })
+          ) ||
+          []
+      );
 
-    load();
-  }, []);
+      setTeam(
+        teamRes.performance?.map(
+          (row: any) => ({
+            name: row.employeeName,
+            leadCount:
+              row.assignedLeads,
+          })
+        ) || []
+      );
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  load();
+}, [role]);
 
   const funnelData = [
     {
@@ -156,7 +178,12 @@ export default function DashboardPage() {
       </div>
     );
   }
-
+if (
+  role === "sales_executive" ||
+  role === "telecaller"
+) {
+  return <ExecutiveDashboard />;
+}
   return (
     <div className="space-y-5">
       <div className="bg-gradient-to-r from-slate-900 to-indigo-900 rounded-lg p-5 text-white shadow-sm">

@@ -32,52 +32,24 @@ interface Props {
 
 function LeadList({ mode }: Props) {
   const navigate = useNavigate();
-  const [leads, setLeads] =
-    useState<any[]>([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [search, setSearch] =
-    useState("");
-
-  const [status, setStatus] =
-    useState("");
-
-  const [
-    temperature,
-    setTemperature,
-  ] = useState("");
-
-  const [importOpen, setImportOpen] =
-    useState(false);
-
-  const [assignOpen, setAssignOpen] =
-    useState(false);
-
-  const [teamUsers, setTeamUsers] =
-    useState<any[]>([]);
-
-  const [
-    selectedUserId,
-    setSelectedUserId,
-  ] = useState("");
-
-  const [
-    selectedLeadIds,
-    setSelectedLeadIds,
-  ] = useState<string[]>([]);
-
-  const [editLead, setEditLead] =
-    useState<any>(null);
-  const [reassignLeadId, setReassignLeadId] =
-    useState<string | null>(null);
-  const [updateOpen, setUpdateOpen] =
-    useState(false);
-  const [reassignOpen, setReassignOpen] =
-    useState(false);
-
-  useEffect(() => {
+  const [leads, setLeads] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [dateRange, setDateRange] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [temperature, setTemperature] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [teamUsers, setTeamUsers] = useState<any[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
+  const [editLead, setEditLead] = useState<any>(null);
+  const [reassignLeadId, setReassignLeadId] = useState<string | null>(null);
+  const [updateOpen, setUpdateOpen] = useState(false);
+  const [reassignOpen, setReassignOpen] = useState(false);
+useEffect(() => {
     fetchLeads();
 
     if (mode !== "my") {
@@ -132,78 +104,53 @@ function LeadList({ mode }: Props) {
       }
     };
 
-  const handleFilter =
-    async () => {
-      try {
-        setLoading(true);
+  const handleFilter = async () => {
+  try {
+    setLoading(true);
 
-        let res;
+    let res;
 
-        if (mode === "all") {
-          res =
-            await getAllLeads();
-        } else if (
-          mode === "assigned"
-        ) {
-          res =
-            await getAssignedLeads();
-        } else {
-          res =
-            await getMyLeads();
-        }
-
-        let filtered =
-          res.leads || [];
-
-        if (search) {
-          filtered =
-            filtered.filter(
-              (lead: any) =>
-                lead.fullName
-                  ?.toLowerCase()
-                  .includes(
-                    search.toLowerCase()
-                  ) ||
-                lead.phone?.includes(
-                  search
-                ) ||
-                lead.email
-                  ?.toLowerCase()
-                  .includes(
-                    search.toLowerCase()
-                  )
-            );
-        }
-
-        if (status) {
-          filtered =
-            filtered.filter(
-              (lead: any) =>
-                lead.status ===
-                status
-            );
-        }
-
-        if (temperature) {
-          filtered =
-            filtered.filter(
-              (lead: any) =>
-                lead.temperature ===
-                temperature
-            );
-        }
-
-        setLeads(filtered);
-      } catch (error) {
-        console.error(error);
-
-        toast.error(
-          "Filter failed"
-        );
-      } finally {
-        setLoading(false);
-      }
+    const params = {
+      search,
+      status,
+      temperature,
+      assignedTo: selectedUserId,
+      dateRange,
+      fromDate,
+      toDate,
     };
+
+    if (mode === "all") {
+      res = await getAllLeads(
+        params
+      );
+    } else if (
+      mode === "assigned"
+    ) {
+      res =
+        await getAssignedLeads(
+          params
+        );
+    } else {
+      res =
+        await getMyLeads(
+          params
+        );
+    }
+
+    setLeads(
+      res.leads || []
+    );
+  } catch (error) {
+    console.error(error);
+
+    toast.error(
+      "Filter failed"
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const toggleLeadSelection = (
     leadId: string
@@ -257,6 +204,18 @@ function LeadList({ mode }: Props) {
             undefined,
           temperature:
             temperature ||
+            undefined,
+          assignedTo:
+            selectedUserId ||
+            undefined,
+          dateRange:
+            dateRange ||
+            undefined,
+          fromDate:
+            fromDate ||
+            undefined,
+          toDate:
+            toDate ||
             undefined,
         };
 
@@ -418,7 +377,7 @@ function LeadList({ mode }: Props) {
 
       {/* FILTERS */}
       <div className="bg-white rounded-xl shadow border p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4">
           <div className="relative">
             <Search
               size={18}
@@ -489,7 +448,118 @@ function LeadList({ mode }: Props) {
               Cold
             </option>
           </select>
+          <select
+  value={selectedUserId}
+  onChange={(e) =>
+    setSelectedUserId(e.target.value)
+  }
+  className="bg-slate-100 rounded-xl px-4 py-3"
+>
+  <option value="">
+    All Team Members
+  </option>
 
+  {teamUsers
+    ?.filter((user: any) =>
+      ["sales_executive", "telecaller"].includes(
+        user.role
+      )
+    )
+    .map((user: any) => (
+    <option
+      key={user._id}
+      value={user._id}
+    >
+      {user.fullName}
+    </option>
+  ))}
+</select>
+          <select
+            value={dateRange}
+            onChange={(e) =>
+              setDateRange(e.target.value)
+            }
+            className="bg-slate-100 rounded-xl px-4 py-3"
+          >
+            <option value="">
+              Date Range
+            </option>
+
+            <option value="today">
+              Today
+            </option>
+
+            <option value="yesterday">
+              Yesterday
+            </option>
+
+            <option value="last7days">
+              Last 7 Days
+            </option>
+
+            <option value="last30days">
+              Last 30 Days
+            </option>
+
+            <option value="thisMonth">
+              This Month
+            </option>
+
+            <option value="lastMonth">
+              Last Month
+            </option>
+
+            <option value="custom">
+              Custom Range
+            </option>
+          </select>
+          {(
+  localStorage
+    .getItem("role") === "superadmin" ||
+  localStorage
+    .getItem("role") === "admin" ||
+  localStorage
+    .getItem("role") === "sales_manager"
+) && (
+  <select
+    value={selectedUserId}
+    onChange={(e) =>
+      setSelectedUserId(
+        e.target.value
+      )
+    }
+    className="bg-slate-100 rounded-xl px-4 py-3"
+  >
+  </select>
+)}
+          {
+            dateRange === "custom" && (
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <input
+                  type="date"
+                  value={fromDate}
+                  onChange={(e) =>
+                    setFromDate(
+                      e.target.value
+                    )
+                  }
+                  className="bg-slate-100 rounded-xl px-4 py-3"
+                />
+
+                <input
+                  type="date"
+                  value={toDate}
+                  onChange={(e) =>
+                    setToDate(
+                      e.target.value
+                    )
+                  }
+                  className="bg-slate-100 rounded-xl px-4 py-3"
+                />
+              </div>
+            )
+          }
+          
           <button
             onClick={handleFilter}
             className="bg-purple-600 text-white rounded-xl py-3 flex items-center justify-center gap-2"

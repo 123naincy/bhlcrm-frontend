@@ -114,7 +114,59 @@ export default function TeamPage() {
             </button>
           </div>
         </div>
+<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+  <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-2xl p-6">
+    <p className="text-sm opacity-80">
+      Total Members
+    </p>
+    <h2 className="text-3xl font-bold mt-2">
+      {users.length}
+    </h2>
+  </div>
 
+  <div className="bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-2xl p-6">
+    <p className="text-sm opacity-80">
+      Active Members
+    </p>
+    <h2 className="text-3xl font-bold mt-2">
+      {
+        users.filter(
+          (u) => u.isActive
+        ).length
+      }
+    </h2>
+  </div>
+
+  <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-2xl p-6">
+    <p className="text-sm opacity-80">
+      Managers
+    </p>
+    <h2 className="text-3xl font-bold mt-2">
+      {
+        users.filter(
+          (u) =>
+            u.role ===
+            "sales_manager"
+        ).length
+      }
+    </h2>
+  </div>
+
+  <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-2xl p-6">
+    <p className="text-sm opacity-80">
+      Executives
+    </p>
+    <h2 className="text-3xl font-bold mt-2">
+      {
+        users.filter(
+          (u) =>
+            u.role ===
+            "sales_executive"
+        ).length
+      }
+    </h2>
+  </div>
+</div>
         {/* SEARCH */}
         <div className="bg-white rounded-xl shadow-xl p-6">
           <div className="relative">
