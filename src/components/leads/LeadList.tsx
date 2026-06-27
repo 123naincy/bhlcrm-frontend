@@ -25,6 +25,9 @@ import { ReassignLeadDrawer } from "./ReassignLeadDrawer";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { getProjectLabel } from "../../utils/leadDisplay";
+import {
+  LEAD_STATUS_OPTIONS,
+} from "../../constants/leadStatuses";
 
 interface Props {
   mode: "all" | "assigned" | "my";
@@ -409,21 +412,17 @@ function LeadList({ mode }: Props) {
             <option value="">
               All Status
             </option>
-            <option value="new">
-              New
-            </option>
-            <option value="assigned">
-              Assigned
-            </option>
-            <option value="contacted">
-              Contacted
-            </option>
-            <option value="won">
-              Won
-            </option>
-            <option value="lost">
-              Lost
-            </option>
+
+            {LEAD_STATUS_OPTIONS.map(
+              (option) => (
+                <option
+                  key={option.value}
+                  value={option.value}
+                >
+                  {option.label}
+                </option>
+              )
+            )}
           </select>
 
           <select

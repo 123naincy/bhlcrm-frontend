@@ -8,6 +8,9 @@ import {
 import toast from "react-hot-toast";
 import { getProjectLabel } from "../../utils/leadDisplay";
 import {
+  LEAD_STATUS_OPTIONS,
+} from "../../constants/leadStatuses";
+import {
   getLeadRecordings,
   playRecording,
 } from "../../api/callLogApi";
@@ -269,49 +272,16 @@ export default function LeadDetailPage() {
               }
               className="w-full border rounded-xl p-4"
             >
-              <option value="new">
-                New
-              </option>
-
-              <option value="assigned">
-                Assigned
-              </option>
-
-              <option value="contacted">
-                Contacted
-              </option>
-
-              <option value="follow_up">
-                Follow Up
-              </option>
-
-              <option value="interested">
-                Interested
-              </option>
-
-              <option value="site_visit_scheduled">
-                Site Visit Scheduled
-              </option>
-
-              <option value="site_visit_done">
-                Site Visit Done
-              </option>
-
-              <option value="negotiation">
-                Negotiation
-              </option>
-
-              <option value="won">
-                Won
-              </option>
-
-              <option value="lost">
-                Lost
-              </option>
-
-              <option value="junk">
-                Junk
-              </option>
+              {LEAD_STATUS_OPTIONS.map(
+                (option) => (
+                  <option
+                    key={option.value}
+                    value={option.value}
+                  >
+                    {option.label}
+                  </option>
+                )
+              )}
             </select>
 
             <button

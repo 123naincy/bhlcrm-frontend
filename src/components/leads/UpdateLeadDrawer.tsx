@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { updateLead } from "../../api/leadApi";
 import toast from "react-hot-toast";
+import {
+  LEAD_STATUS_OPTIONS,
+} from "../../constants/leadStatuses";
 
 export function UpdateLeadDrawer({
   open,
@@ -60,12 +63,16 @@ export function UpdateLeadDrawer({
             onChange={(e) => setStatus(e.target.value)}
             className="w-full p-4 rounded-2xl bg-slate-100"
           >
-            <option value="new">New</option>
-            <option value="assigned">Assigned</option>
-            <option value="contacted">Contacted</option>
-            <option value="follow_up">Follow Up</option>
-            <option value="won">Won</option>
-            <option value="lost">Lost</option>
+            {LEAD_STATUS_OPTIONS.map(
+              (option) => (
+                <option
+                  key={option.value}
+                  value={option.value}
+                >
+                  {option.label}
+                </option>
+              )
+            )}
           </select>
 
           <select
