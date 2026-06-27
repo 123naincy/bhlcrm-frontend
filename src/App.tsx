@@ -12,6 +12,10 @@ import AllLeadsPage from "./pages/leads/AllLeadsPage";
 import ProjectsPage from "./pages/projects/ProjectsPage";
 import SourceMappingPage from "./pages/source/SourceMappingPage";
 import LeadDetailPage from "./pages/leads/LeadDetailPage";
+import InventoryDashboard from "./pages/inventory/InventoryDashboard";
+import InventoryUnitDetails from "./pages/inventory/InventoryUnitDetails";
+import BookingList from "./pages/booking/BookingList";
+import BookingDetails from "./pages/booking/BookingDetails";
 function App() {
   return (
     <BrowserRouter>
@@ -150,6 +154,62 @@ function App() {
                 ]}
               >
                 <TeamPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="inventory"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "super_admin",
+                  "admin",
+                ]}
+              >
+                <InventoryDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="inventory/unit/:id"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "super_admin",
+                  "admin",
+                ]}
+              >
+                <InventoryUnitDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="bookings"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "super_admin",
+                  "admin",
+                ]}
+              >
+                <BookingList />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="bookings/:id"
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "super_admin",
+                  "admin",
+                ]}
+              >
+                <BookingDetails />
               </ProtectedRoute>
             }
           />

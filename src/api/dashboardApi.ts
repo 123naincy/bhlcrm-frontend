@@ -49,3 +49,12 @@ export const getTodayFollowups =
 
     return response.data;
   };
+  export const getManagerSummary =
+  async () => {
+    const response =
+      await api.get(
+        "/dashboard/manager-summary"
+      );
+
+    return response.data;
+  };

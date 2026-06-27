@@ -6,7 +6,11 @@ export interface DashboardStats {
   wonLeads: number;
   lostLeads: number;
   todayLeads: number;
+  todayStatusUpdates?: number;
+  todayNewLeads?: number;
   pendingFollowups: number;
+  pendingLeads?: number;
+  pendingAssignedLeads?: number;
 }
 
 export interface TeamPerformance {
@@ -14,6 +18,14 @@ export interface TeamPerformance {
   assignedLeads: number;
   hotLeads: number;
   wonLeads: number;
+  followUpUpdates?: number;
+}
+
+export interface TopPerformer {
+  employeeId: string;
+  employeeName: string;
+  role: string;
+  followUpUpdates: number;
 }
 
 export interface SourcePerformance {

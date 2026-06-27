@@ -8,7 +8,8 @@ import {
   ChevronRight,
   ShieldCheck,
   FolderKanban,
-  Link2
+  Link2,
+  Package,
 } from "lucide-react";
 
 import { useNavigate, useLocation } from "react-router-dom";
@@ -97,6 +98,15 @@ const menuItems = [
           <FolderKanban size={18} />
         ),
         path: "/projects",
+      },
+    ]
+  : []),
+  ...(canManageProjects
+  ? [
+      {
+        name: "Inventory",
+        icon: <Package size={18} />,
+        path: "/inventory",
       },
     ]
   : []),
