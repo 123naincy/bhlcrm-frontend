@@ -21,6 +21,9 @@ export interface Inventory {
 
   floor?: string;
 
+  /** Ground floor plan position (1–16) for building units */
+  floorPosition?: number;
+
   plotNo: string;
 
   title?: string;
@@ -107,8 +110,13 @@ export const PHASE2_SECTIONS = [
     id: "commercial",
     label: "Commercial",
     block: "Commercial",
-    hasFloors: false,
-    description: "9 commercial shops",
+    hasFloors: true,
+    floors: [
+      "Ground Floor",
+      "First Floor",
+    ],
+    description:
+      "9 shops per floor · Ground & First",
   },
   {
     id: "bunglow",

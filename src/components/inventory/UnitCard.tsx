@@ -7,8 +7,11 @@ interface Props {
     unit: Inventory
   ) => void;
 
-  /** C-type cards show 2 BHK as the main label */
+  /** C-type / E-type cards show 2 BHK as the main label */
   cTypeMode?: boolean;
+
+  /** Commercial shop cards show shop number and area */
+  shopMode?: boolean;
 }
 
 const statusStyles = {
@@ -33,6 +36,7 @@ export default function UnitCard({
   unit,
   onClick,
   cTypeMode = false,
+  shopMode = false,
 }: Props) {
   const styles =
     statusStyles[unit.status];
@@ -41,13 +45,35 @@ export default function UnitCard({
     unit.plotNo.split("-").pop() ||
     unit.plotNo;
 
-  const primaryLabel = cTypeMode
-    ? "2 BHK"
-    : unitIndex;
+  const usesFloorPosition =
+    typeof unit.floorPosition ===
+    "number";
 
-  const secondaryLabel = cTypeMode
-    ? `Unit ${unitIndex}`
-    : unit.category || "";
+  const primaryLabel = shopMode
+    ? String(
+        unit.floorPosition ??
+          unitIndex
+      )
+    : cTypeMode
+      ? "2 BHK"
+      : usesFloorPosition
+        ? String(unit.floorPosition)
+        : unitIndex;
+
+  const secondaryLabel = shopMode
+    ? unit.category || "Shop"
+    : cTypeMode
+      ? `Unit ${unitIndex}`
+      : usesFloorPosition
+        ? unit.category || ""
+        : unit.category || "";
+
+  const areaLabel =
+    usesFloorPosition ||
+    cTypeMode ||
+    shopMode
+      ? `${unit.area} sq/ft`
+      : "";
 
   return (
     <button
@@ -69,6 +95,14 @@ export default function UnitCard({
           className={`text-[10px] font-medium mt-1 text-center ${styles.sub}`}
         >
           {secondaryLabel}
+        </span>
+      )}
+
+      {areaLabel && (
+        <span
+          className={`text-[10px] font-semibold mt-0.5 text-center ${styles.sub}`}
+        >
+          {areaLabel}
         </span>
       )}
     </button>
