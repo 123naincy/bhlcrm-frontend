@@ -19,23 +19,23 @@ import {
   getLeadRecordings,
   playRecording,
 } from "../../api/callLogApi";
-import { hasRole } from "../../utils/auth";
+import { getCurrentUser } from "../../utils/auth";
 
 function getLeadListPath() {
-  if (
-    hasRole([
-      "sales_executive",
-      "telecaller",
-    ])
-  ) {
-    return "/leads/my";
-  }
+  const role = getCurrentUser()?.role;
 
-  if (hasRole(["sales_manager"])) {
-    return "/leads/assigned";
+  switch (role) {
+    case "sales_executive":
+    case "telecaller":
+      return "/leads/my";
+    case "sales_manager":
+      return "/leads/assigned";
+    case "super_admin":
+    case "admin":
+      return "/leads/all";
+    default:
+      return "/leads/all";
   }
-
-  return "/leads/all";
 }
 
 function getLeadListLabel(path: string) {
@@ -51,7 +51,15 @@ function getLeadListLabel(path: string) {
     return "Back to Kanban";
   }
 
-  return "Back to All Leads";
+  if (path.includes("/all")) {
+    return "Back to All Leads";
+  }
+
+  if (path.includes("/dashboard")) {
+    return "Back to Dashboard";
+  }
+
+  return "Back to Leads";
 }
 
 export default function LeadDetailPage() {

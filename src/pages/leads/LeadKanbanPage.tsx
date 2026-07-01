@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
     DragDropContext,
     Droppable,
@@ -40,16 +40,37 @@ const STATUSES = [
 
 const PAGE_LIMIT = 20;
 
+type KanbanCacheEntry = {
+    columns: any;
+    search: string;
+    city: string;
+    source: string;
+    temperature: string;
+};
+
+let kanbanCache: KanbanCacheEntry | null = null;
+
 export default function LeadKanbanPage() {
-    const [search, setSearch] = useState("");
-    const [city, setCity] = useState("");
-    const [source, setSource] = useState("");
+    const cached = kanbanCache;
+    const [search, setSearch] = useState(
+        cached?.search ?? ""
+    );
+    const [city, setCity] = useState(
+        cached?.city ?? ""
+    );
+    const [source, setSource] = useState(
+        cached?.source ?? ""
+    );
     const [temperature, setTemperature] =
-        useState("");
+        useState(cached?.temperature ?? "");
 
     const [columns, setColumns] = useState<any>(
-        {}
+        cached?.columns ?? {}
     );
+
+    const [refreshing, setRefreshing] =
+        useState(false);
+    const loadingRef = useRef(false);
 
     const [, setLoading] =
         useState(false);
@@ -94,10 +115,41 @@ export default function LeadKanbanPage() {
     };
 
     const loadAllColumns =
-        useCallback(async () => {
-            try {
-                setLoading(true);
+        useCallback(async (options?: {
+            force?: boolean;
+        }) => {
+            const filtersMatch =
+                kanbanCache &&
+                kanbanCache.search === search &&
+                kanbanCache.city === city &&
+                kanbanCache.source === source &&
+                kanbanCache.temperature ===
+                    temperature;
 
+            if (
+                !options?.force &&
+                filtersMatch
+            ) {
+                setColumns(
+                    kanbanCache!.columns
+                );
+                setLoading(false);
+                return;
+            }
+
+            if (loadingRef.current) {
+                return;
+            }
+
+            loadingRef.current = true;
+
+            if (kanbanCache) {
+                setRefreshing(true);
+            } else {
+                setLoading(true);
+            }
+
+            try {
                 const results =
                     await Promise.all(
                         STATUSES.map((status) =>
@@ -122,6 +174,14 @@ export default function LeadKanbanPage() {
                     }
                 );
 
+                kanbanCache = {
+                    columns: mapped,
+                    search,
+                    city,
+                    source,
+                    temperature,
+                };
+
                 setColumns(mapped);
             } catch (error) {
                 console.error(error);
@@ -129,7 +189,9 @@ export default function LeadKanbanPage() {
                     "Failed to load pipeline"
                 );
             } finally {
+                loadingRef.current = false;
                 setLoading(false);
+                setRefreshing(false);
             }
         }, [search, city, source, temperature]);
 
@@ -248,7 +310,7 @@ export default function LeadKanbanPage() {
                 "Move failed, restoring..."
             );
 
-            loadAllColumns();
+            loadAllColumns({ force: true });
         } finally {
             setDragLoading(false);
         }
@@ -281,10 +343,24 @@ export default function LeadKanbanPage() {
                     </div>
 
                     <button
-                        onClick={loadAllColumns}
-                        className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition"
+                        type="button"
+                        onClick={() =>
+                            void loadAllColumns({
+                                force: true,
+                            })
+                        }
+                        disabled={refreshing}
+                        className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition disabled:opacity-60"
+                        title="Refresh pipeline"
                     >
-                        <RefreshCcw size={18} />
+                        <RefreshCcw
+                            size={18}
+                            className={
+                                refreshing
+                                    ? "animate-spin"
+                                    : ""
+                            }
+                        />
                     </button>
                 </div>
 

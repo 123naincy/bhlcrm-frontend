@@ -346,7 +346,9 @@ export default function ExecutiveDashboard() {
   ];
 
   const openLead = (leadId: string) => {
-    navigate(`/leads/${leadId}`);
+    navigate(`/leads/${leadId}`, {
+      state: { from: "/leads/my" },
+    });
   };
 
   return (

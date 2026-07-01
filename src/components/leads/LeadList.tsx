@@ -1,4 +1,9 @@
-import { useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Search,
   Eye,
@@ -33,39 +38,67 @@ interface Props {
   mode: "all" | "assigned" | "my";
 }
 
+type LeadListMode = "all" | "assigned" | "my";
+
+type LeadListCacheEntry = {
+  leads: any[];
+  search: string;
+  status: string;
+  dateRange: string;
+  fromDate: string;
+  toDate: string;
+  temperature: string;
+  selectedUserId: string;
+};
+
+const leadListCache: Partial<
+  Record<LeadListMode, LeadListCacheEntry>
+> = {};
+
 function LeadList({ mode }: Props) {
   const navigate = useNavigate();
+  const cached = leadListCache[mode];
   const listPath =
     mode === "my"
       ? "/leads/my"
       : mode === "assigned"
         ? "/leads/assigned"
         : "/leads/all";
-  const [leads, setLeads] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [dateRange, setDateRange] = useState("");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
-  const [temperature, setTemperature] = useState("");
+  const [leads, setLeads] = useState<any[]>(
+    cached?.leads ?? []
+  );
+  const [loading, setLoading] = useState(!cached);
+  const [refreshing, setRefreshing] =
+    useState(false);
+  const loadingRef = useRef(false);
+  const [search, setSearch] = useState(
+    cached?.search ?? ""
+  );
+  const [status, setStatus] = useState(
+    cached?.status ?? ""
+  );
+  const [dateRange, setDateRange] = useState(
+    cached?.dateRange ?? ""
+  );
+  const [fromDate, setFromDate] = useState(
+    cached?.fromDate ?? ""
+  );
+  const [toDate, setToDate] = useState(
+    cached?.toDate ?? ""
+  );
+  const [temperature, setTemperature] = useState(
+    cached?.temperature ?? ""
+  );
   const [importOpen, setImportOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [teamUsers, setTeamUsers] = useState<any[]>([]);
-  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedUserId, setSelectedUserId] =
+    useState(cached?.selectedUserId ?? "");
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [editLead, setEditLead] = useState<any>(null);
   const [reassignLeadId, setReassignLeadId] = useState<string | null>(null);
   const [updateOpen, setUpdateOpen] = useState(false);
   const [reassignOpen, setReassignOpen] = useState(false);
-  useEffect(() => {
-    fetchLeads();
-
-    if (mode !== "my") {
-      fetchTeamUsers();
-    }
-  }, [mode]);
-
   const getLeadParams = () => ({
     search: search || undefined,
     status: status || undefined,
@@ -76,42 +109,116 @@ function LeadList({ mode }: Props) {
     toDate: toDate || undefined,
   });
 
-  const fetchLeads = async (silent = false) => {
-    try {
-      if (!silent) {
+  const fetchLeads = useCallback(
+    async (options?: {
+      silent?: boolean;
+      force?: boolean;
+    }) => {
+      const silent =
+        options?.silent ?? false;
+      const force =
+        options?.force ?? false;
+
+      if (loadingRef.current) {
+        return;
+      }
+
+      if (
+        !force &&
+        leadListCache[mode]
+      ) {
+        const entry =
+          leadListCache[mode]!;
+
+        setLeads(entry.leads);
+        setSearch(entry.search);
+        setStatus(entry.status);
+        setDateRange(entry.dateRange);
+        setFromDate(entry.fromDate);
+        setToDate(entry.toDate);
+        setTemperature(entry.temperature);
+        setSelectedUserId(
+          entry.selectedUserId
+        );
+        setLoading(false);
+        return;
+      }
+
+      loadingRef.current = true;
+
+      if (leadListCache[mode]) {
+        setRefreshing(true);
+      } else if (!silent) {
         setLoading(true);
       }
 
-      let res;
+      try {
+        let res;
 
-      const params = getLeadParams();
+        const params = getLeadParams();
 
-      if (mode === "all") {
-        res = await getAllLeads(params);
-      } else if (
-        mode === "assigned"
-      ) {
-        res =
-          await getAssignedLeads(
-            params
-          );
-      } else {
-        res = await getMyLeads(params);
+        if (mode === "all") {
+          res = await getAllLeads(params);
+        } else if (
+          mode === "assigned"
+        ) {
+          res =
+            await getAssignedLeads(
+              params
+            );
+        } else {
+          res = await getMyLeads(params);
+        }
+
+        const nextLeads = res.leads || [];
+
+        leadListCache[mode] = {
+          leads: nextLeads,
+          search,
+          status,
+          dateRange,
+          fromDate,
+          toDate,
+          temperature,
+          selectedUserId,
+        };
+
+        setLeads(nextLeads);
+      } catch (error) {
+        console.error(error);
+
+        toast.error(
+          "Failed to load leads"
+        );
+      } finally {
+        loadingRef.current = false;
+
+        if (!silent) {
+          setLoading(false);
+        }
+
+        setRefreshing(false);
       }
+    },
+    [
+      mode,
+      search,
+      status,
+      dateRange,
+      fromDate,
+      toDate,
+      temperature,
+      selectedUserId,
+    ]
+  );
 
-      setLeads(res.leads || []);
-    } catch (error) {
-      console.error(error);
+  useEffect(() => {
+    void fetchLeads();
 
-      toast.error(
-        "Failed to load leads"
-      );
-    } finally {
-      if (!silent) {
-        setLoading(false);
-      }
+    if (mode !== "my") {
+      fetchTeamUsers();
     }
-  };
+  }, [mode]);
 
   const fetchTeamUsers =
     async () => {
@@ -133,7 +240,7 @@ function LeadList({ mode }: Props) {
 
   const handleFilter = async () => {
     try {
-      await fetchLeads();
+      await fetchLeads({ force: true });
     } catch (error) {
       console.error(error);
 
@@ -156,7 +263,10 @@ function LeadList({ mode }: Props) {
       ]);
     }
 
-    void fetchLeads(true);
+    void fetchLeads({
+      silent: true,
+      force: true,
+    });
   };
 
   const toggleLeadSelection = (
@@ -297,7 +407,7 @@ function LeadList({ mode }: Props) {
         setSelectedUserId("");
         setSelectedLeadIds([]);
 
-        fetchLeads();
+        fetchLeads({ force: true });
       } catch (error) {
         console.error(error);
 
@@ -335,12 +445,20 @@ function LeadList({ mode }: Props) {
         <div className="flex gap-3 items-center flex-wrap">
           <button
             onClick={() => {
-              fetchLeads();
+              void fetchLeads({ force: true });
             }}
-            className="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg flex items-center gap-2 text-sm hover:bg-slate-300"
+            disabled={refreshing}
+            className="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg flex items-center gap-2 text-sm hover:bg-slate-300 disabled:opacity-60"
             title="Refresh list"
           >
-            <RefreshCcw size={16} />
+            <RefreshCcw
+              size={16}
+              className={
+                refreshing
+                  ? "animate-spin"
+                  : ""
+              }
+            />
             Refresh
           </button>
 
@@ -887,7 +1005,7 @@ function LeadList({ mode }: Props) {
         onSuccess={() => {
           setReassignOpen(false);
           setReassignLeadId(null);
-          fetchLeads();
+          fetchLeads({ force: true });
         }}
       />
 
@@ -899,7 +1017,7 @@ function LeadList({ mode }: Props) {
         }
         onImported={() => {
           setImportOpen(false);
-          fetchLeads();
+          fetchLeads({ force: true });
         }}
       />
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ResponsiveContainer,
   PieChart,
@@ -26,6 +26,7 @@ import {
   CheckCircle2,
   XCircle,
   Sparkles,
+  RefreshCw,
 } from "lucide-react";
 
 import {
@@ -34,6 +35,16 @@ import {
   getTeamPerformance,
 } from "../../api/dashboardApi";
 import ExecutiveDashboard from "./ExecutiveDashboard";
+
+type AdminDashboardCache = {
+  stats: any;
+  sources: any[];
+  team: any[];
+  topPerformer: any;
+};
+
+let adminDashboardCache:
+  AdminDashboardCache | null = null;
 
 const COLORS = [
   "#4F46E5",
@@ -128,12 +139,25 @@ function Panel({
 }
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<any>(null);
-  const [sources, setSources] = useState<any[]>([]);
-  const [team, setTeam] = useState<any[]>([]);
+  const [stats, setStats] = useState<any>(
+    adminDashboardCache?.stats ?? null
+  );
+  const [sources, setSources] = useState<any[]>(
+    adminDashboardCache?.sources ?? []
+  );
+  const [team, setTeam] = useState<any[]>(
+    adminDashboardCache?.team ?? []
+  );
   const [topPerformer, setTopPerformer] =
-    useState<any>(null);
-  const [loading, setLoading] = useState(true);
+    useState<any>(
+      adminDashboardCache?.topPerformer ?? null
+    );
+  const [loading, setLoading] = useState(
+    !adminDashboardCache
+  );
+  const [refreshing, setRefreshing] =
+    useState(false);
+  const loadingRef = useRef(false);
 
   const user = JSON.parse(
     localStorage.getItem("user") || "{}"
@@ -141,16 +165,48 @@ export default function DashboardPage() {
 
   const role = user?.role;
 
-  useEffect(() => {
-    if (
-      role === "sales_executive" ||
-      role === "telecaller"
-    ) {
-      setLoading(false);
-      return;
-    }
+  const applyCache = (
+    cache: AdminDashboardCache
+  ) => {
+    setStats(cache.stats);
+    setSources(cache.sources);
+    setTeam(cache.team);
+    setTopPerformer(cache.topPerformer);
+  };
 
-    const load = async () => {
+  const loadDashboard = useCallback(
+    async (options?: {
+      force?: boolean;
+    }) => {
+      if (
+        role === "sales_executive" ||
+        role === "telecaller"
+      ) {
+        setLoading(false);
+        return;
+      }
+
+      if (loadingRef.current) {
+        return;
+      }
+
+      if (
+        adminDashboardCache &&
+        !options?.force
+      ) {
+        applyCache(adminDashboardCache);
+        setLoading(false);
+        return;
+      }
+
+      loadingRef.current = true;
+
+      if (adminDashboardCache) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
       try {
         const [statsRes, sourceRes, teamRes] =
           await Promise.all([
@@ -159,20 +215,17 @@ export default function DashboardPage() {
             getTeamPerformance(),
           ]);
 
-        setStats(statsRes);
-
-        setSources(
+        const nextSources =
           sourceRes.sourcePerformance ||
-            sourceRes.performance?.map(
-              (row: any) => ({
-                _id: row.source,
-                count: row.totalLeads,
-              })
-            ) ||
-            []
-        );
+          sourceRes.performance?.map(
+            (row: any) => ({
+              _id: row.source,
+              count: row.totalLeads,
+            })
+          ) ||
+          [];
 
-        setTeam(
+        const nextTeam =
           teamRes.performance
             ?.filter(
               (row: any) =>
@@ -195,8 +248,7 @@ export default function DashboardPage() {
               (a: any, b: any) =>
                 b.assignedLeads -
                 a.assignedLeads
-            ) || []
-        );
+            ) || [];
 
         const performance =
           teamRes.performance || [];
@@ -219,28 +271,42 @@ export default function DashboardPage() {
                 (a.workedLeads || 0)
           )[0];
 
-        setTopPerformer(
+        const nextTopPerformer =
           apiTop ||
-            (fallbackTop
-              ? {
-                  employeeName:
-                    fallbackTop.employeeName,
-                  role: fallbackTop.role,
-                  followUpUpdates:
-                    fallbackTop.followUpUpdates ||
-                    0,
-                }
-              : null)
-        );
+          (fallbackTop
+            ? {
+                employeeName:
+                  fallbackTop.employeeName,
+                role: fallbackTop.role,
+                followUpUpdates:
+                  fallbackTop.followUpUpdates ||
+                  0,
+              }
+            : null);
+
+        const cache: AdminDashboardCache = {
+          stats: statsRes,
+          sources: nextSources,
+          team: nextTeam,
+          topPerformer: nextTopPerformer,
+        };
+
+        adminDashboardCache = cache;
+        applyCache(cache);
       } catch (error) {
         console.error(error);
       } finally {
+        loadingRef.current = false;
         setLoading(false);
+        setRefreshing(false);
       }
-    };
+    },
+    [role]
+  );
 
-    load();
-  }, [role]);
+  useEffect(() => {
+    void loadDashboard();
+  }, [loadDashboard]);
 
   const funnelData = [
     {
@@ -325,7 +391,7 @@ export default function DashboardPage() {
     <div className="space-y-6 pb-6">
       {/* Header */}
       <div className="overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-900 to-violet-900 p-6 text-white shadow-xl">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-indigo-100">
               <Sparkles size={14} />
@@ -341,7 +407,29 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            <button
+              type="button"
+              onClick={() =>
+                void loadDashboard({
+                  force: true,
+                })
+              }
+              disabled={refreshing}
+              className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition hover:bg-white/20 disabled:opacity-60"
+            >
+              <RefreshCw
+                size={16}
+                className={
+                  refreshing
+                    ? "animate-spin"
+                    : ""
+                }
+              />
+              Refresh
+            </button>
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
               {
                 label: "Today Updates",
@@ -379,6 +467,7 @@ export default function DashboardPage() {
                 </p>
               </div>
             ))}
+          </div>
           </div>
         </div>
       </div>
