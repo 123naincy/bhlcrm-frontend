@@ -49,6 +49,17 @@ export const getTodayFollowups =
 
     return response.data;
   };
+
+export const getMyDailyActivity =
+  async () => {
+    const response =
+      await api.get(
+        "/dashboard/my-daily-activity"
+      );
+
+    return response.data;
+  };
+
   export const getManagerSummary =
   async () => {
     const response =

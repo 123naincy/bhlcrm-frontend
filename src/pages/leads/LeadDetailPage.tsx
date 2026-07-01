@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import {
+  useLocation,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 import {
   getLeadById,
   updateLeadStatus,
@@ -14,8 +19,55 @@ import {
   getLeadRecordings,
   playRecording,
 } from "../../api/callLogApi";
+import { hasRole } from "../../utils/auth";
+
+function getLeadListPath() {
+  if (
+    hasRole([
+      "sales_executive",
+      "telecaller",
+    ])
+  ) {
+    return "/leads/my";
+  }
+
+  if (hasRole(["sales_manager"])) {
+    return "/leads/assigned";
+  }
+
+  return "/leads/all";
+}
+
+function getLeadListLabel(path: string) {
+  if (path.includes("/my")) {
+    return "Back to My Leads";
+  }
+
+  if (path.includes("/assigned")) {
+    return "Back to Assigned Leads";
+  }
+
+  if (path.includes("/kanban")) {
+    return "Back to Kanban";
+  }
+
+  return "Back to All Leads";
+}
+
 export default function LeadDetailPage() {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const backPath =
+    (
+      location.state as {
+        from?: string;
+      }
+    )?.from || getLeadListPath();
+
+  const backLabel =
+    getLeadListLabel(backPath);
   const [recordings, setRecordings] =
     useState<any[]>([]);
   const [lead, setLead] =
@@ -147,22 +199,45 @@ export default function LeadDetailPage() {
     };
   if (loading) {
     return (
-      <div className="min-h-[70vh] flex items-center justify-center text-xl font-semibold text-slate-500">
-        Loading lead...
+      <div className="space-y-4">
+        <BackButton
+          label={backLabel}
+          onClick={() =>
+            navigate(backPath)
+          }
+        />
+
+        <div className="min-h-[60vh] flex items-center justify-center text-xl font-semibold text-slate-500">
+          Loading lead...
+        </div>
       </div>
     );
   }
 
   if (!lead) {
     return (
-      <div className="p-8 text-red-500">
-        Lead not found
+      <div className="space-y-4">
+        <BackButton
+          label={backLabel}
+          onClick={() =>
+            navigate(backPath)
+          }
+        />
+
+        <div className="p-8 text-red-500">
+          Lead not found
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-5">
+      <BackButton
+        label={backLabel}
+        onClick={() => navigate(backPath)}
+      />
+
       {/* TOP */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
         <div className="flex flex-col lg:flex-row lg:justify-between gap-4">
@@ -435,6 +510,25 @@ export default function LeadDetailPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function BackButton({
+  label,
+  onClick,
+}: {
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+    >
+      <ArrowLeft size={16} />
+      {label}
+    </button>
   );
 }
 

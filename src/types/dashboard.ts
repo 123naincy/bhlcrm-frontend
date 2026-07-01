@@ -34,3 +34,42 @@ export interface SourcePerformance {
   hotLeads: number;
   wonLeads: number;
 }
+
+export interface ExecutiveDashboardStats {
+  totalLeads: number;
+  newLeads: number;
+  contacted: number;
+  followUp: number;
+  interested: number;
+  siteVisitScheduled: number;
+  siteVisitDone: number;
+  won: number;
+  lost: number;
+  hotLeads: number;
+  warmLeads: number;
+  coldLeads: number;
+  overdueFollowups: number;
+  conversionRate: number;
+}
+
+export interface ExecutiveFollowupLead {
+  _id: string;
+  fullName: string;
+  phone?: string;
+  status: string;
+  followUpDate?: string;
+  temperature?: string;
+  updatedAt?: string;
+}
+
+export interface DailyActivityPoint {
+  day: string;
+  date: string;
+  activities: number;
+}
+
+export interface MonthlyTrendPoint {
+  month: string;
+  assigned: number;
+  won: number;
+}

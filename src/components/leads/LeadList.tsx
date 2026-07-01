@@ -35,6 +35,12 @@ interface Props {
 
 function LeadList({ mode }: Props) {
   const navigate = useNavigate();
+  const listPath =
+    mode === "my"
+      ? "/leads/my"
+      : mode === "assigned"
+        ? "/leads/assigned"
+        : "/leads/all";
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -738,7 +744,12 @@ function LeadList({ mode }: Props) {
                         type="button"
                         onClick={() =>
                           navigate(
-                            `/leads/${lead._id}`
+                            `/leads/${lead._id}`,
+                            {
+                              state: {
+                                from: listPath,
+                              },
+                            }
                           )
                         }
                         className="p-2 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
