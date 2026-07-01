@@ -52,7 +52,10 @@ export default function PlotCard({
       >
         {plot.area}
         {" "}
-        Sq.Yd
+        {plot.areaUnit ||
+          (plot.phase === 2
+            ? "Sq.Ft"
+            : "Sq.Yd")}
       </span>
     </button>
   );

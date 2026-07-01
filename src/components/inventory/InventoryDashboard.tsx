@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import useInventory from "../../hooks/useInventory";
 import { getBookingByInventory } from "../../api/bookingApi";
+import { releaseHold } from "../../api/inventoryApi";
 
 import InventorySummary from "../../components/inventory/InventorySummary";
 import InventoryFilters from "../../components/inventory/InventoryFilters";
@@ -42,6 +43,34 @@ export default function InventoryDashboard() {
 
   const [showSoldModal, setShowSoldModal] =
     useState(false);
+
+  const handleReleaseHold = async () => {
+    if (!selectedPlot?.holdId) {
+      window.alert(
+        "Hold record not found for this unit."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Release hold and mark this unit as available?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await releaseHold(
+        selectedPlot.holdId
+      );
+
+      setSelectedPlot(null);
+      reload();
+    } catch {
+      window.alert(
+        "Failed to release hold. Please try again."
+      );
+    }
+  };
 
   const handleViewBooking = async () => {
     if (!selectedPlot) return;
@@ -140,6 +169,7 @@ export default function InventoryDashboard() {
           activeSummary ||
           dashboard.summary
         }
+        phase={phase}
         phaseLabel={
           phase === 1
             ? "Phase 1"
@@ -169,6 +199,9 @@ export default function InventoryDashboard() {
         }
         onSold={() =>
           setShowSoldModal(true)
+        }
+        onReleaseHold={
+          handleReleaseHold
         }
         onViewBooking={
           handleViewBooking

@@ -13,6 +13,8 @@ interface Props {
 
   onSold: () => void;
 
+  onReleaseHold: () => void;
+
   onViewBooking: () => void;
 }
 
@@ -22,6 +24,7 @@ export default function PlotDetailDrawer({
   onClose,
   onHold,
   onSold,
+  onReleaseHold,
   onViewBooking,
 }: Props) {
   if (!open || !plot) return null;
@@ -140,12 +143,21 @@ export default function PlotDetailDrawer({
           )}
 
           {plot.status === "hold" && (
-            <button
-              onClick={onSold}
-              className="w-full bg-green-600 text-white rounded-lg py-3"
-            >
-              Convert To Sold
-            </button>
+            <>
+              <button
+                onClick={onReleaseHold}
+                className="flex-1 bg-slate-600 text-white rounded-lg py-3"
+              >
+                Make Available
+              </button>
+
+              <button
+                onClick={onSold}
+                className="flex-1 bg-green-600 text-white rounded-lg py-3"
+              >
+                Convert To Sold
+              </button>
+            </>
           )}
 
           {plot.status === "sold" && (

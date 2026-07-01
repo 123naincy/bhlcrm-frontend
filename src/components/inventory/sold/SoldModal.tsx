@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { createBooking } from "../../../api/inventoryApi";
@@ -131,6 +131,15 @@ export default function SoldModal({
       referralSource: "",
       bookingSource: "",
     });
+
+  useEffect(() => {
+    if (!plot) return;
+
+    setPricing((prev) => ({
+      ...prev,
+      basePrice: plot.basePrice || 0,
+    }));
+  }, [plot?._id, plot?.basePrice]);
 
   if (!open || !plot) return null;
 

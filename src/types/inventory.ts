@@ -36,6 +36,8 @@ export interface Inventory {
 
   areaUnit: string;
 
+  basePrice?: number;
+
   status: InventoryStatus;
 
   bookingId?: string;
@@ -55,6 +57,9 @@ export interface DashboardSummary {
   sold: number;
 
   totalArea?: number;
+
+  /** Primary area unit for this summary block */
+  areaUnit?: string;
 
   totalSales: number;
 
