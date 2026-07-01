@@ -33,6 +33,7 @@ import { getProjectLabel } from "../../utils/leadDisplay";
 import {
   LEAD_STATUS_OPTIONS,
 } from "../../constants/leadStatuses";
+import { hasRole } from "../../utils/auth";
 
 interface Props {
   mode: "all" | "assigned" | "my";
@@ -571,32 +572,43 @@ function LeadList({ mode }: Props) {
               Cold
             </option>
           </select>
-          <select
-  value={selectedUserId}
-  onChange={(e) =>
-    setSelectedUserId(e.target.value)
-  }
-  className="bg-slate-100 rounded-xl px-4 py-3"
->
-  <option value="">
-    All Team Members
-  </option>
+          {hasRole([
+            "super_admin",
+            "admin",
+            "sales_manager",
+          ]) && (
+            <select
+              value={selectedUserId}
+              onChange={(e) =>
+                setSelectedUserId(
+                  e.target.value
+                )
+              }
+              className="bg-slate-100 rounded-xl px-4 py-3"
+            >
+              <option value="">
+                All Team Members
+              </option>
 
-  {teamUsers
-    ?.filter((user: any) =>
-      ["sales_executive", "telecaller"].includes(
-        user.role
-      )
-    )
-    .map((user: any) => (
-    <option
-      key={user._id}
-      value={user._id}
-    >
-      {user.fullName}
-    </option>
-  ))}
-</select>
+              {teamUsers
+                ?.filter((user: any) =>
+                  [
+                    "sales_executive",
+                    "telecaller",
+                  ].includes(
+                    user.role
+                  )
+                )
+                .map((user: any) => (
+                  <option
+                    key={user._id}
+                    value={user._id}
+                  >
+                    {user.fullName}
+                  </option>
+                ))}
+            </select>
+          )}
           <select
             value={dateRange}
             onChange={(e) =>
@@ -636,25 +648,7 @@ function LeadList({ mode }: Props) {
               Custom Range
             </option>
           </select>
-          {(
-  localStorage
-    .getItem("role") === "superadmin" ||
-  localStorage
-    .getItem("role") === "admin" ||
-  localStorage
-    .getItem("role") === "sales_manager"
-) && (
-  <select
-    value={selectedUserId}
-    onChange={(e) =>
-      setSelectedUserId(
-        e.target.value
-      )
-    }
-    className="bg-slate-100 rounded-xl px-4 py-3"
-  >
-  </select>
-)}
+
           {
             dateRange === "custom" && (
               <div className="grid grid-cols-2 gap-4 mt-4">

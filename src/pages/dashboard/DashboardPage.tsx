@@ -13,6 +13,7 @@ import {
   FunnelChart,
   Funnel,
   LabelList,
+  Legend,
 } from "recharts";
 
 import {
@@ -27,6 +28,7 @@ import {
   XCircle,
   Sparkles,
   RefreshCw,
+  PhoneCall,
 } from "lucide-react";
 
 import {
@@ -230,25 +232,32 @@ export default function DashboardPage() {
             ?.filter(
               (row: any) =>
                 row.role ===
-                "sales_executive"
+                  "sales_executive" ||
+                row.role ===
+                  "telecaller"
             )
             .map((row: any) => ({
               name: row.employeeName,
               role: row.role,
               assignedLeads:
                 row.assignedLeads || 0,
+              workedLeads:
+                row.workedLeads || 0,
+              pendingLeads:
+                row.pendingLeads || 0,
               wonLeads:
                 row.wonLeads || 0,
               hotLeads:
                 row.hotLeads || 0,
+              totalCalls:
+                row.totalCalls || 0,
+              statusUpdates:
+                row.statusUpdates || 0,
               followUpUpdates:
                 row.followUpUpdates || 0,
-            }))
-            .sort(
-              (a: any, b: any) =>
-                b.assignedLeads -
-                a.assignedLeads
-            ) || [];
+              conversionRate:
+                row.conversionRate || 0,
+            })) || [];
 
         const performance =
           teamRes.performance || [];
@@ -265,10 +274,12 @@ export default function DashboardPage() {
           )
           .sort(
             (a: any, b: any) =>
+              (b.statusUpdates || 0) -
+                (a.statusUpdates || 0) ||
+              (b.totalCalls || 0) -
+                (a.totalCalls || 0) ||
               (b.followUpUpdates || 0) -
-                (a.followUpUpdates || 0) ||
-              (b.workedLeads || 0) -
-                (a.workedLeads || 0)
+                (a.followUpUpdates || 0)
           )[0];
 
         const nextTopPerformer =
@@ -280,6 +291,12 @@ export default function DashboardPage() {
                 role: fallbackTop.role,
                 followUpUpdates:
                   fallbackTop.followUpUpdates ||
+                  0,
+                totalCalls:
+                  fallbackTop.totalCalls ||
+                  0,
+                statusUpdates:
+                  fallbackTop.statusUpdates ||
                   0,
               }
             : null);
@@ -682,22 +699,33 @@ export default function DashboardPage() {
                   )}
                 </p>
 
-                <div className="mt-5 rounded-xl bg-white/15 p-4 backdrop-blur-sm">
-                  <p className="text-sm text-white/80">
-                    Follow-up Updates
-                  </p>
+                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="rounded-xl bg-white/15 p-4 backdrop-blur-sm">
+                    <p className="text-sm text-white/80">
+                      Status Updates
+                    </p>
+                    <p className="mt-1 text-2xl font-bold">
+                      {topPerformer.statusUpdates ?? 0}
+                    </p>
+                  </div>
 
-                  <p className="mt-1 text-3xl font-bold">
-                    {
-                      topPerformer.followUpUpdates
-                    }
-                  </p>
+                  <div className="rounded-xl bg-white/15 p-4 backdrop-blur-sm">
+                    <p className="text-sm text-white/80">
+                      Calls Made
+                    </p>
+                    <p className="mt-1 text-2xl font-bold">
+                      {topPerformer.totalCalls ?? 0}
+                    </p>
+                  </div>
 
-                  <p className="mt-1 text-xs text-white/70">
-                    {topPerformer.followUpUpdates > 0
-                      ? "Most active on follow-ups"
-                      : "No follow-up logs yet — updates will appear here"}
-                  </p>
+                  <div className="rounded-xl bg-white/15 p-4 backdrop-blur-sm">
+                    <p className="text-sm text-white/80">
+                      Follow-up Updates
+                    </p>
+                    <p className="mt-1 text-2xl font-bold">
+                      {topPerformer.followUpUpdates ?? 0}
+                    </p>
+                  </div>
                 </div>
               </>
             ) : (
@@ -708,10 +736,10 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Leaderboard */}
+        {/* Employee performance */}
         <Panel
-          title="Sales Executive Leaderboard"
-          subtitle="Ranked by assigned leads"
+          title="Employee Performance"
+          subtitle="Assigned, pending, calls, and lead status updates"
           icon={
             <Target
               className="text-indigo-600"
@@ -721,59 +749,79 @@ export default function DashboardPage() {
           className="xl:col-span-8"
         >
           {team.length ? (
-            <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-              <div className="space-y-3">
-                {team.map((member, index) => (
-                  <div
-                    key={member.name}
-                    className="flex items-center gap-4 rounded-xl border border-slate-100 bg-slate-50/80 p-4"
-                  >
-                    <div
-                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                        index === 0
-                          ? "bg-amber-100 text-amber-700"
-                          : index === 1
-                          ? "bg-slate-200 text-slate-700"
-                          : index === 2
-                          ? "bg-orange-100 text-orange-700"
-                          : "bg-indigo-50 text-indigo-600"
-                      }`}
-                    >
-                      #{index + 1}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-semibold text-slate-900">
-                        {member.name}
-                      </p>
-
-                      <p className="text-xs text-slate-500">
-                        {member.wonLeads}
-                        {" "}
-                        won ·
-                        {" "}
-                        {member.hotLeads}
-                        {" "}
-                        hot
-                      </p>
-                    </div>
-
-                    <div className="text-right">
-                      <p className="text-2xl font-bold text-indigo-600">
-                        {
-                          member.assignedLeads
-                        }
-                      </p>
-
-                      <p className="text-xs text-slate-500">
-                        leads
-                      </p>
-                    </div>
-                  </div>
-                ))}
+            <div className="space-y-5">
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-slate-50 text-left text-slate-500">
+                    <tr>
+                      <th className="px-4 py-3 font-medium">
+                        Employee
+                      </th>
+                      <th className="px-4 py-3 font-medium">
+                        Assigned
+                      </th>
+                      <th className="px-4 py-3 font-medium">
+                        Pending
+                      </th>
+                      <th className="px-4 py-3 font-medium">
+                        Calls
+                      </th>
+                      <th className="px-4 py-3 font-medium">
+                        Status Updates
+                      </th>
+                      <th className="px-4 py-3 font-medium">
+                        Won
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {team.map((member) => (
+                      <tr
+                        key={member.name}
+                        className="border-t border-slate-100"
+                      >
+                        <td className="px-4 py-3">
+                          <p className="font-medium text-slate-900">
+                            {member.name}
+                          </p>
+                          <p className="text-xs capitalize text-slate-500">
+                            {member.role?.replace(
+                              "_",
+                              " "
+                            )}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3 font-semibold text-indigo-600">
+                          {member.assignedLeads}
+                        </td>
+                        <td className="px-4 py-3 font-semibold text-amber-600">
+                          {member.pendingLeads}
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="inline-flex items-center gap-1 font-medium text-slate-700">
+                            <PhoneCall size={14} />
+                            {member.totalCalls}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-semibold text-emerald-600">
+                          {member.statusUpdates}
+                        </td>
+                        <td className="px-4 py-3 font-semibold text-green-700">
+                          {member.wonLeads}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
 
-              <ResponsiveContainer width="100%" height={Math.max(team.length * 56, 240)}>
+              <ResponsiveContainer
+                width="100%"
+                height={Math.max(
+                  team.length * 56,
+                  240
+                )}
+              >
                 <BarChart
                   data={team}
                   layout="vertical"
@@ -796,25 +844,47 @@ export default function DashboardPage() {
                     tick={{ fontSize: 12 }}
                   />
 
-                  <Tooltip
-                    formatter={(value) => [
-                      value,
-                      "Assigned Leads",
-                    ]}
-                  />
+                  <Tooltip />
+
+                  <Legend />
 
                   <Bar
                     dataKey="assignedLeads"
+                    name="Assigned"
                     fill="#6366F1"
                     radius={[0, 10, 10, 0]}
-                    barSize={18}
+                    barSize={14}
+                  />
+
+                  <Bar
+                    dataKey="pendingLeads"
+                    name="Pending"
+                    fill="#F59E0B"
+                    radius={[0, 10, 10, 0]}
+                    barSize={14}
+                  />
+
+                  <Bar
+                    dataKey="totalCalls"
+                    name="Calls"
+                    fill="#0EA5E9"
+                    radius={[0, 10, 10, 0]}
+                    barSize={14}
+                  />
+
+                  <Bar
+                    dataKey="statusUpdates"
+                    name="Status Updates"
+                    fill="#10B981"
+                    radius={[0, 10, 10, 0]}
+                    barSize={14}
                   />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           ) : (
             <div className="flex h-48 items-center justify-center rounded-xl border border-dashed border-slate-200 text-sm text-slate-400">
-              No sales executive data available
+              No employee performance data available
             </div>
           )}
         </Panel>
