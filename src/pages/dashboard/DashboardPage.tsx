@@ -41,12 +41,75 @@ import ExecutiveDashboard from "./ExecutiveDashboard";
 type AdminDashboardCache = {
   stats: any;
   sources: any[];
-  team: any[];
-  topPerformer: any;
 };
 
 let adminDashboardCache:
   AdminDashboardCache | null = null;
+
+function mapTeamPerformance(
+  teamRes: any
+) {
+  const performance =
+    teamRes?.performance || [];
+
+  const nextTeam = performance
+    .filter(
+      (row: any) =>
+        row.role ===
+          "sales_executive" ||
+        row.role === "telecaller"
+    )
+    .map((row: any) => ({
+      name: row.employeeName,
+      role: row.role,
+      assignedLeads:
+        row.assignedLeads || 0,
+      wonLeads: row.wonLeads || 0,
+      hotLeads: row.hotLeads || 0,
+      totalCalls: row.totalCalls || 0,
+      statusUpdates:
+        row.statusUpdates || 0,
+    }));
+
+  const fallbackTop = performance
+    .filter(
+      (row: any) =>
+        row.role ===
+          "sales_executive" ||
+        row.role === "telecaller"
+    )
+    .sort(
+      (a: any, b: any) =>
+        (b.statusUpdates || 0) -
+          (a.statusUpdates || 0) ||
+        (b.totalCalls || 0) -
+          (a.totalCalls || 0)
+    )[0];
+
+  const apiTop = teamRes?.topPerformer;
+
+  const nextTopPerformer =
+    apiTop ||
+    (fallbackTop
+      ? {
+          employeeName:
+            fallbackTop.employeeName,
+          role: fallbackTop.role,
+          totalCalls:
+            fallbackTop.totalCalls || 0,
+          statusUpdates:
+            fallbackTop.statusUpdates ||
+            0,
+        }
+      : null);
+
+  return {
+    team: nextTeam,
+    topPerformer: nextTopPerformer,
+    reportDate:
+      teamRes?.reportDate || "",
+  };
+}
 
 const COLORS = [
   "#4F46E5",
@@ -148,12 +211,14 @@ export default function DashboardPage() {
     adminDashboardCache?.sources ?? []
   );
   const [team, setTeam] = useState<any[]>(
-    adminDashboardCache?.team ?? []
+    []
   );
   const [topPerformer, setTopPerformer] =
-    useState<any>(
-      adminDashboardCache?.topPerformer ?? null
-    );
+    useState<any>(null);
+  const [teamReportDate, setTeamReportDate] =
+    useState("");
+  const [teamRefreshing, setTeamRefreshing] =
+    useState(false);
   const [loading, setLoading] = useState(
     !adminDashboardCache
   );
@@ -172,9 +237,31 @@ export default function DashboardPage() {
   ) => {
     setStats(cache.stats);
     setSources(cache.sources);
-    setTeam(cache.team);
-    setTopPerformer(cache.topPerformer);
   };
+
+  const loadTeamPerformance =
+    useCallback(async () => {
+      try {
+        setTeamRefreshing(true);
+
+        const teamRes =
+          await getTeamPerformance();
+        const mapped =
+          mapTeamPerformance(teamRes);
+
+        setTeam(mapped.team);
+        setTopPerformer(
+          mapped.topPerformer
+        );
+        setTeamReportDate(
+          mapped.reportDate
+        );
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setTeamRefreshing(false);
+      }
+    }, []);
 
   const loadDashboard = useCallback(
     async (options?: {
@@ -198,6 +285,7 @@ export default function DashboardPage() {
       ) {
         applyCache(adminDashboardCache);
         setLoading(false);
+        void loadTeamPerformance();
         return;
       }
 
@@ -227,89 +315,23 @@ export default function DashboardPage() {
           ) ||
           [];
 
-        const nextTeam =
-          teamRes.performance
-            ?.filter(
-              (row: any) =>
-                row.role ===
-                  "sales_executive" ||
-                row.role ===
-                  "telecaller"
-            )
-            .map((row: any) => ({
-              name: row.employeeName,
-              role: row.role,
-              assignedLeads:
-                row.assignedLeads || 0,
-              workedLeads:
-                row.workedLeads || 0,
-              pendingLeads:
-                row.pendingLeads || 0,
-              wonLeads:
-                row.wonLeads || 0,
-              hotLeads:
-                row.hotLeads || 0,
-              totalCalls:
-                row.totalCalls || 0,
-              statusUpdates:
-                row.statusUpdates || 0,
-              followUpUpdates:
-                row.followUpUpdates || 0,
-              conversionRate:
-                row.conversionRate || 0,
-            })) || [];
-
-        const performance =
-          teamRes.performance || [];
-
-        const apiTop =
-          teamRes.topPerformer;
-
-        const fallbackTop = performance
-          .filter(
-            (row: any) =>
-              row.role ===
-                "sales_executive" ||
-              row.role === "telecaller"
-          )
-          .sort(
-            (a: any, b: any) =>
-              (b.statusUpdates || 0) -
-                (a.statusUpdates || 0) ||
-              (b.totalCalls || 0) -
-                (a.totalCalls || 0) ||
-              (b.followUpUpdates || 0) -
-                (a.followUpUpdates || 0)
-          )[0];
-
-        const nextTopPerformer =
-          apiTop ||
-          (fallbackTop
-            ? {
-                employeeName:
-                  fallbackTop.employeeName,
-                role: fallbackTop.role,
-                followUpUpdates:
-                  fallbackTop.followUpUpdates ||
-                  0,
-                totalCalls:
-                  fallbackTop.totalCalls ||
-                  0,
-                statusUpdates:
-                  fallbackTop.statusUpdates ||
-                  0,
-              }
-            : null);
-
         const cache: AdminDashboardCache = {
           stats: statsRes,
           sources: nextSources,
-          team: nextTeam,
-          topPerformer: nextTopPerformer,
         };
 
         adminDashboardCache = cache;
         applyCache(cache);
+
+        const mapped =
+          mapTeamPerformance(teamRes);
+        setTeam(mapped.team);
+        setTopPerformer(
+          mapped.topPerformer
+        );
+        setTeamReportDate(
+          mapped.reportDate
+        );
       } catch (error) {
         console.error(error);
       } finally {
@@ -318,7 +340,7 @@ export default function DashboardPage() {
         setRefreshing(false);
       }
     },
-    [role]
+    [role, loadTeamPerformance]
   );
 
   useEffect(() => {
@@ -699,10 +721,10 @@ export default function DashboardPage() {
                   )}
                 </p>
 
-                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="rounded-xl bg-white/15 p-4 backdrop-blur-sm">
                     <p className="text-sm text-white/80">
-                      Status Updates
+                      Status Updates Today
                     </p>
                     <p className="mt-1 text-2xl font-bold">
                       {topPerformer.statusUpdates ?? 0}
@@ -711,19 +733,10 @@ export default function DashboardPage() {
 
                   <div className="rounded-xl bg-white/15 p-4 backdrop-blur-sm">
                     <p className="text-sm text-white/80">
-                      Calls Made
+                      Calls Today
                     </p>
                     <p className="mt-1 text-2xl font-bold">
                       {topPerformer.totalCalls ?? 0}
-                    </p>
-                  </div>
-
-                  <div className="rounded-xl bg-white/15 p-4 backdrop-blur-sm">
-                    <p className="text-sm text-white/80">
-                      Follow-up Updates
-                    </p>
-                    <p className="mt-1 text-2xl font-bold">
-                      {topPerformer.followUpUpdates ?? 0}
                     </p>
                   </div>
                 </div>
@@ -738,8 +751,12 @@ export default function DashboardPage() {
 
         {/* Employee performance */}
         <Panel
-          title="Employee Performance"
-          subtitle="Assigned, pending, calls, and lead status updates"
+          title="Today's Employee Performance"
+          subtitle={
+            teamReportDate
+              ? `Daily activity for ${teamReportDate} · Assigned leads, today's calls on worked leads, and today's status updates`
+              : "Assigned leads, today's calls on worked leads, and today's status updates"
+          }
           icon={
             <Target
               className="text-indigo-600"
@@ -748,6 +765,12 @@ export default function DashboardPage() {
           }
           className="xl:col-span-8"
         >
+          {teamRefreshing && (
+            <p className="mb-3 text-xs text-indigo-600">
+              Updating today's performance...
+            </p>
+          )}
+
           {team.length ? (
             <div className="space-y-5">
               <div className="overflow-x-auto rounded-xl border border-slate-200">
@@ -761,13 +784,10 @@ export default function DashboardPage() {
                         Assigned
                       </th>
                       <th className="px-4 py-3 font-medium">
-                        Pending
+                        Calls Today
                       </th>
                       <th className="px-4 py-3 font-medium">
-                        Calls
-                      </th>
-                      <th className="px-4 py-3 font-medium">
-                        Status Updates
+                        Status Updates Today
                       </th>
                       <th className="px-4 py-3 font-medium">
                         Won
@@ -793,9 +813,6 @@ export default function DashboardPage() {
                         </td>
                         <td className="px-4 py-3 font-semibold text-indigo-600">
                           {member.assignedLeads}
-                        </td>
-                        <td className="px-4 py-3 font-semibold text-amber-600">
-                          {member.pendingLeads}
                         </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center gap-1 font-medium text-slate-700">
@@ -857,16 +874,8 @@ export default function DashboardPage() {
                   />
 
                   <Bar
-                    dataKey="pendingLeads"
-                    name="Pending"
-                    fill="#F59E0B"
-                    radius={[0, 10, 10, 0]}
-                    barSize={14}
-                  />
-
-                  <Bar
                     dataKey="totalCalls"
-                    name="Calls"
+                    name="Calls Today"
                     fill="#0EA5E9"
                     radius={[0, 10, 10, 0]}
                     barSize={14}
@@ -874,7 +883,7 @@ export default function DashboardPage() {
 
                   <Bar
                     dataKey="statusUpdates"
-                    name="Status Updates"
+                    name="Status Updates Today"
                     fill="#10B981"
                     radius={[0, 10, 10, 0]}
                     barSize={14}
