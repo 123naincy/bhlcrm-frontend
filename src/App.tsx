@@ -108,7 +108,19 @@ function App() {
 
           <Route
             path="leads/kanban"
-            element={<LeadKanbanPage />}
+            element={
+              <ProtectedRoute
+                allowedRoles={[
+                  "super_admin",
+                  "admin",
+                  "sales_manager",
+                  "sales_executive",
+                  "telecaller",
+                ]}
+              >
+                <LeadKanbanPage />
+              </ProtectedRoute>
+            }
           />
 
           <Route

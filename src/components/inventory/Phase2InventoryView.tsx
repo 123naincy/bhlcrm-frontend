@@ -40,6 +40,13 @@ export default function Phase2InventoryView({
         activeSection
     ) || PHASE2_SECTIONS[0];
 
+  const sectionFloors = useMemo(() => {
+    return "floors" in sectionConfig &&
+      sectionConfig.floors
+      ? [...sectionConfig.floors]
+      : [...PHASE2_FLOORS];
+  }, [sectionConfig]);
+
   const sectionUnits =
     useMemo(() => {
       return units.filter(
@@ -112,6 +119,15 @@ export default function Phase2InventoryView({
 
   const isCTypeSection =
     sectionConfig.id === "c-type";
+
+  const isETypeSection =
+    sectionConfig.id === "e-type";
+
+  const isRowVillaSection =
+    isCTypeSection || isETypeSection;
+
+  const isCommercialSection =
+    sectionConfig.id === "commercial";
 
   const groupedUnitsSorted =
     useMemo(() => {
@@ -218,9 +234,13 @@ export default function Phase2InventoryView({
                     section.id
                   );
 
-                  setActiveFloor(
-                    PHASE2_FLOORS[0]
-                  );
+                  const floors =
+                    "floors" in section &&
+                    section.floors
+                      ? section.floors[0]
+                      : PHASE2_FLOORS[0];
+
+                  setActiveFloor(floors);
                 }}
                 className={`px-4 py-2 rounded-lg border text-sm font-medium transition ${
                   activeSection ===
@@ -297,7 +317,7 @@ export default function Phase2InventoryView({
 
         {sectionConfig.hasFloors && (
           <div className="flex flex-wrap gap-2 mt-4">
-            {PHASE2_FLOORS.map(
+            {sectionFloors.map(
               (floor) => {
                 const count =
                   sectionUnits.filter(
@@ -369,8 +389,10 @@ export default function Phase2InventoryView({
 
               <div
                 className={
-                  isCTypeSection
-                    ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2"
+                  isRowVillaSection
+                    ? isCTypeSection
+                      ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2"
+                      : "grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2"
                     : "grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2"
                 }
               >
@@ -380,7 +402,7 @@ export default function Phase2InventoryView({
                       key={unit._id}
                       unit={unit}
                       cTypeMode={
-                        isCTypeSection
+                        isRowVillaSection
                       }
                       onClick={onSelect}
                     />
@@ -393,11 +415,20 @@ export default function Phase2InventoryView({
 
       {!groupedUnitsSorted &&
         floorUnits.length > 0 && (
-          <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2">
+          <div
+            className={
+              isCommercialSection
+                ? "grid grid-cols-3 sm:grid-cols-5 md:grid-cols-9 gap-2"
+                : "grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 xl:grid-cols-12 gap-2"
+            }
+          >
             {floorUnits.map((unit) => (
               <UnitCard
                 key={unit._id}
                 unit={unit}
+                shopMode={
+                  isCommercialSection
+                }
                 onClick={onSelect}
               />
             ))}
@@ -405,7 +436,8 @@ export default function Phase2InventoryView({
         )}
 
       {sectionConfig.hasFloors &&
-        floorUnits.length > 0 && (
+        floorUnits.length > 0 &&
+        !isCommercialSection && (
           <p className="text-xs text-slate-500">
             {activeFloor}
             :

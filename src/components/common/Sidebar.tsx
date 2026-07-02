@@ -126,6 +126,11 @@ const menuItems = [
           icon: <Users size={18} />,
           path: "/leads/my",
         },
+        {
+          name: "Kanban",
+          icon: <LayoutDashboard size={18} />,
+          path: "/leads/kanban",
+        },
       ]
     : []),
 

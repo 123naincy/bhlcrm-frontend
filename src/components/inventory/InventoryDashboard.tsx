@@ -1,8 +1,10 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { RefreshCw } from "lucide-react";
 
 import useInventory from "../../hooks/useInventory";
 import { getBookingByInventory } from "../../api/bookingApi";
+import { releaseHold } from "../../api/inventoryApi";
 
 import InventorySummary from "../../components/inventory/InventorySummary";
 import InventoryFilters from "../../components/inventory/InventoryFilters";
@@ -26,6 +28,7 @@ export default function InventoryDashboard() {
     dashboard,
     error,
     reload,
+    reloadSilent,
   } = useInventory();
 
   const [phase, setPhase] =
@@ -42,6 +45,34 @@ export default function InventoryDashboard() {
 
   const [showSoldModal, setShowSoldModal] =
     useState(false);
+
+  const handleReleaseHold = async () => {
+    if (!selectedPlot?.holdId) {
+      window.alert(
+        "Hold record not found for this unit."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Release hold and mark this unit as available?"
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await releaseHold(
+        selectedPlot.holdId
+      );
+
+      setSelectedPlot(null);
+      reloadSilent();
+    } catch {
+      window.alert(
+        "Failed to release hold. Please try again."
+      );
+    }
+  };
 
   const handleViewBooking = async () => {
     if (!selectedPlot) return;
@@ -126,13 +157,24 @@ export default function InventoryDashboard() {
   return (
     <div className="p-2 md:p-0">
 
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">
-          Inventory Management
-        </h1>
-        <p className="text-slate-500 mt-1">
-          View and manage Phase 1 plots and Phase 2 buildings, apartments, and units
-        </p>
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900">
+            Inventory Management
+          </h1>
+          <p className="text-slate-500 mt-1">
+            View and manage Phase 1 plots and Phase 2 buildings, apartments, and units
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={reload}
+          className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+        >
+          <RefreshCw size={16} />
+          Refresh
+        </button>
       </div>
 
       <InventorySummary
@@ -140,6 +182,7 @@ export default function InventoryDashboard() {
           activeSummary ||
           dashboard.summary
         }
+        phase={phase}
         phaseLabel={
           phase === 1
             ? "Phase 1"
@@ -170,6 +213,9 @@ export default function InventoryDashboard() {
         onSold={() =>
           setShowSoldModal(true)
         }
+        onReleaseHold={
+          handleReleaseHold
+        }
         onViewBooking={
           handleViewBooking
         }
@@ -189,7 +235,7 @@ export default function InventoryDashboard() {
         onSuccess={() => {
           setShowHoldModal(false);
           setSelectedPlot(null);
-          reload();
+          reloadSilent();
         }}
       />
 
@@ -202,7 +248,7 @@ export default function InventoryDashboard() {
         onSuccess={() => {
           setShowSoldModal(false);
           setSelectedPlot(null);
-          reload();
+          reloadSilent();
         }}
       />
 
