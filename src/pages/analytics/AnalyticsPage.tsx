@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -21,13 +21,18 @@ import {
 } from "../../api/dashboardApi";
 
 import {
+  mapSourcePerformanceRows,
+  mapTeamPerformanceRows,
+} from "../../utils/dashboardMappers";
+
+import {
   Users,
   Flame,
   Trophy,
   XCircle,
-  TrendingUp,
   Building2,
   Target,
+  RefreshCw,
 } from "lucide-react";
 
 function AnalyticsPage() {
@@ -35,40 +40,79 @@ function AnalyticsPage() {
   const [teamData, setTeamData] = useState<any[]>([]);
   const [sourceData, setSourceData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState("");
 
-  useEffect(() => {
-    loadAnalytics();
-  }, []);
-
-  const loadAnalytics = async () => {
+  const loadAnalytics = useCallback(async () => {
     try {
+      setRefreshing(true);
+      setError("");
+
       const [statsRes, teamRes, sourceRes] =
-        await Promise.all([
+        await Promise.allSettled([
           getDashboardStats(),
           getTeamPerformance(),
           getSourcePerformance(),
         ]);
 
-      setStats(statsRes);
-      setTeamData(
-        teamRes.teamPerformance ||
-          teamRes.performance?.map((row: any) => ({
-            name: row.employeeName,
-            leadCount: row.assignedLeads,
-          })) ||
-          []
+      if (statsRes.status === "fulfilled") {
+        setStats(statsRes.value);
+      } else {
+        console.error(
+          "Analytics stats failed:",
+          statsRes.reason
+        );
+      }
+
+      if (teamRes.status === "fulfilled") {
+        setTeamData(
+          mapTeamPerformanceRows(
+            teamRes.value
+          )
+        );
+      } else {
+        console.error(
+          "Analytics team failed:",
+          teamRes.reason
+        );
+      }
+
+      if (sourceRes.status === "fulfilled") {
+        setSourceData(
+          mapSourcePerformanceRows(
+            sourceRes.value
+          )
+        );
+      } else {
+        console.error(
+          "Analytics source failed:",
+          sourceRes.reason
+        );
+      }
+
+      if (
+        statsRes.status === "rejected" &&
+        teamRes.status === "rejected" &&
+        sourceRes.status === "rejected"
+      ) {
+        setError(
+          "Failed to load analytics data."
+        );
+      }
+    } catch (loadError) {
+      console.error(loadError);
+      setError(
+        "Failed to load analytics data."
       );
-      setSourceData(
-        sourceRes.sourcePerformance ||
-          sourceRes.performance ||
-          []
-      );
-    } catch (error) {
-      console.error(error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadAnalytics();
+  }, [loadAnalytics]);
 
   if (loading) {
     return (
@@ -109,11 +153,31 @@ function AnalyticsPage() {
               Business performance metrics
             </p>
           </div>
-          <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
-            <TrendingUp size={20} />
-          </div>
+
+          <button
+            type="button"
+            onClick={() => void loadAnalytics()}
+            disabled={refreshing}
+            className="inline-flex items-center gap-2 rounded-lg bg-white/10 px-4 py-2 text-sm disabled:opacity-60"
+          >
+            <RefreshCw
+              size={16}
+              className={
+                refreshing
+                  ? "animate-spin"
+                  : ""
+              }
+            />
+            Refresh
+          </button>
         </div>
       </div>
+
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-lg p-4 text-white shadow-sm">
@@ -165,9 +229,7 @@ function AnalyticsPage() {
         </div>
       </div>
 
-      {/* MAIN CHARTS */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-        {/* SOURCE */}
         <div className="bg-white/80 backdrop-blur-xl rounded-xl shadow-2xl p-4 border border-white/50">
           <div className="flex items-center gap-4 mb-8">
             <div className="w-14 h-14 rounded-2xl bg-indigo-100 flex items-center justify-center">
@@ -184,22 +246,27 @@ function AnalyticsPage() {
             </div>
           </div>
 
-          <ResponsiveContainer width="100%" height={380}>
-            <BarChart data={sourceData}>
-              <CartesianGrid strokeDasharray="4 4" />
-              <XAxis dataKey="_id" />
-              <YAxis />
-              <Tooltip />
-              <Bar
-                dataKey="count"
-                fill="#4f46e5"
-                radius={[14, 14, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+          {sourceData.length ? (
+            <ResponsiveContainer width="100%" height={380}>
+              <BarChart data={sourceData}>
+                <CartesianGrid strokeDasharray="4 4" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar
+                  dataKey="count"
+                  fill="#4f46e5"
+                  radius={[14, 14, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-[380px] items-center justify-center rounded-xl border border-dashed border-slate-200 text-sm text-slate-400">
+              No source data available
+            </div>
+          )}
         </div>
 
-        {/* TEAM */}
         <div className="bg-white/80 backdrop-blur-xl rounded-xl shadow-2xl p-4 border border-white/50">
           <div className="flex items-center gap-4 mb-8">
             <div className="w-14 h-14 rounded-2xl bg-emerald-100 flex items-center justify-center">
@@ -211,53 +278,58 @@ function AnalyticsPage() {
                 Team Performance
               </h2>
               <p className="text-slate-500">
-                Executive productivity
+                Assigned leads by executive
               </p>
             </div>
           </div>
 
-          <ResponsiveContainer width="100%" height={380}>
-            <AreaChart data={teamData}>
-              <defs>
-                <linearGradient
-                  id="colorLeads"
-                  x1="0"
-                  y1="0"
-                  x2="0"
-                  y2="1"
-                >
-                  <stop
-                    offset="5%"
-                    stopColor="#10b981"
-                    stopOpacity={0.8}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor="#10b981"
-                    stopOpacity={0}
-                  />
-                </linearGradient>
-              </defs>
+          {teamData.length ? (
+            <ResponsiveContainer width="100%" height={380}>
+              <AreaChart data={teamData}>
+                <defs>
+                  <linearGradient
+                    id="colorLeads"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="5%"
+                      stopColor="#10b981"
+                      stopOpacity={0.8}
+                    />
+                    <stop
+                      offset="95%"
+                      stopColor="#10b981"
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                </defs>
 
-              <CartesianGrid strokeDasharray="4 4" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
+                <CartesianGrid strokeDasharray="4 4" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
 
-              <Area
-                type="monotone"
-                dataKey="leadCount"
-                stroke="#10b981"
-                fillOpacity={1}
-                fill="url(#colorLeads)"
-                strokeWidth={4}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+                <Area
+                  type="monotone"
+                  dataKey="leadCount"
+                  stroke="#10b981"
+                  fillOpacity={1}
+                  fill="url(#colorLeads)"
+                  strokeWidth={4}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex h-[380px] items-center justify-center rounded-xl border border-dashed border-slate-200 text-sm text-slate-400">
+              No team performance data available
+            </div>
+          )}
         </div>
       </div>
 
-      {/* PIE */}
       <div className="bg-white/80 backdrop-blur-xl rounded-xl shadow-2xl p-10 border border-white/50">
         <h2 className="text-3xl font-bold text-slate-900 mb-8">
           Deal Distribution

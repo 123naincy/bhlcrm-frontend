@@ -47,11 +47,11 @@ export default function SourceMappingPage() {
           await getSourceMappings();
 
         setProjects(
-          projectRes.projects
+          projectRes?.projects || []
         );
 
         setMappings(
-          mappingRes.mappings
+          mappingRes?.mappings || []
         );
       } catch {
         toast.error(
@@ -264,32 +264,31 @@ export default function SourceMappingPage() {
           </thead>
 
           <tbody>
-            {mappings.map(
-              (
-                mapping
-              ) => (
+            {mappings.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={4}
+                  className="p-8 text-center text-slate-500"
+                >
+                  No source mappings yet. Create one above.
+                </td>
+              </tr>
+            ) : (
+              mappings.map((mapping) => (
                 <tr
-                  key={
-                    mapping._id
-                  }
+                  key={mapping._id}
                   className="border-t"
                 >
                   <td className="p-4">
-                    {
-                      mapping.sourceType
-                    }
+                    {mapping.sourceType}
                   </td>
 
                   <td className="p-4">
-                    {
-                      mapping.identifier
-                    }
+                    {mapping.identifier}
                   </td>
 
                   <td className="p-4">
-                    {
-                      mapping.projectName
-                    }
+                    {mapping.projectName}
                   </td>
 
                   <td className="p-4">
@@ -305,7 +304,7 @@ export default function SourceMappingPage() {
                     </button>
                   </td>
                 </tr>
-              )
+              ))
             )}
           </tbody>
         </table>

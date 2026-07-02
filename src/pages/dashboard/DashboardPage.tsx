@@ -37,6 +37,9 @@ import {
   getTeamPerformance,
 } from "../../api/dashboardApi";
 import ExecutiveDashboard from "./ExecutiveDashboard";
+import {
+  mapTeamPerformanceRows,
+} from "../../utils/dashboardMappers";
 
 type AdminDashboardCache = {
   stats: any;
@@ -52,24 +55,8 @@ function mapTeamPerformance(
   const performance =
     teamRes?.performance || [];
 
-  const nextTeam = performance
-    .filter(
-      (row: any) =>
-        row.role ===
-          "sales_executive" ||
-        row.role === "telecaller"
-    )
-    .map((row: any) => ({
-      name: row.employeeName,
-      role: row.role,
-      assignedLeads:
-        row.assignedLeads || 0,
-      wonLeads: row.wonLeads || 0,
-      hotLeads: row.hotLeads || 0,
-      totalCalls: row.totalCalls || 0,
-      statusUpdates:
-        row.statusUpdates || 0,
-    }));
+  const team =
+    mapTeamPerformanceRows(teamRes);
 
   const fallbackTop = performance
     .filter(
@@ -104,7 +91,7 @@ function mapTeamPerformance(
       : null);
 
   return {
-    team: nextTeam,
+    team,
     topPerformer: nextTopPerformer,
     reportDate:
       teamRes?.reportDate || "",

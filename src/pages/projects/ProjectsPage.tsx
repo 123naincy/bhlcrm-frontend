@@ -38,7 +38,7 @@ export default function ProjectsPage() {
           await getProjects();
 
         setProjects(
-          res.projects
+          res?.projects || []
         );
       } catch {
         toast.error(
@@ -190,38 +190,35 @@ export default function ProjectsPage() {
           </thead>
 
           <tbody>
-            {projects.map(
-              (
-                project
-              ) => (
+            {projects.length === 0 ? (
+              <tr>
+                <td
+                  colSpan={5}
+                  className="p-8 text-center text-slate-500"
+                >
+                  No projects yet. Create one above.
+                </td>
+              </tr>
+            ) : (
+              projects.map((project) => (
                 <tr
-                  key={
-                    project._id
-                  }
+                  key={project._id}
                   className="border-t"
                 >
                   <td className="p-4">
-                    {
-                      project.name
-                    }
+                    {project.name}
                   </td>
 
                   <td className="p-4">
-                    {
-                      project.location
-                    }
+                    {project.location}
                   </td>
 
                   <td className="p-4">
-                    {
-                      project.propertyType
-                    }
+                    {project.propertyType}
                   </td>
 
                   <td className="p-4">
-                    {
-                      project.status
-                    }
+                    {project.status}
                   </td>
 
                   <td className="p-4">
@@ -237,7 +234,7 @@ export default function ProjectsPage() {
                     </button>
                   </td>
                 </tr>
-              )
+              ))
             )}
           </tbody>
         </table>
