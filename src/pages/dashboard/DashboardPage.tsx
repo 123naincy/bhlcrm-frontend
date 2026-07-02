@@ -299,39 +299,73 @@ export default function DashboardPage() {
 
       try {
         const [statsRes, sourceRes, teamRes] =
-          await Promise.all([
+          await Promise.allSettled([
             getDashboardStats(),
             getSourcePerformance(),
             getTeamPerformance(),
           ]);
 
-        const nextSources =
-          sourceRes.sourcePerformance ||
-          sourceRes.performance?.map(
-            (row: any) => ({
-              _id: row.source,
-              count: row.totalLeads,
-            })
-          ) ||
+        let nextStats =
+          adminDashboardCache?.stats ??
+          null;
+        let nextSources =
+          adminDashboardCache?.sources ??
           [];
 
-        const cache: AdminDashboardCache = {
-          stats: statsRes,
-          sources: nextSources,
-        };
+        if (statsRes.status === "fulfilled") {
+          nextStats = statsRes.value;
+        } else {
+          console.error(
+            "Dashboard stats failed:",
+            statsRes.reason
+          );
+        }
 
-        adminDashboardCache = cache;
-        applyCache(cache);
+        if (sourceRes.status === "fulfilled") {
+          const sourceResData = sourceRes.value;
+          nextSources =
+            sourceResData.sourcePerformance ||
+            sourceResData.performance?.map(
+              (row: any) => ({
+                _id: row.source,
+                count: row.totalLeads,
+              })
+            ) ||
+            [];
+        } else {
+          console.error(
+            "Source performance failed:",
+            sourceRes.reason
+          );
+        }
 
-        const mapped =
-          mapTeamPerformance(teamRes);
-        setTeam(mapped.team);
-        setTopPerformer(
-          mapped.topPerformer
-        );
-        setTeamReportDate(
-          mapped.reportDate
-        );
+        if (nextStats) {
+          const cache: AdminDashboardCache = {
+            stats: nextStats,
+            sources: nextSources,
+          };
+
+          adminDashboardCache = cache;
+          applyCache(cache);
+        }
+
+        if (teamRes.status === "fulfilled") {
+          const mapped = mapTeamPerformance(
+            teamRes.value
+          );
+          setTeam(mapped.team);
+          setTopPerformer(
+            mapped.topPerformer
+          );
+          setTeamReportDate(
+            mapped.reportDate
+          );
+        } else {
+          console.error(
+            "Team performance failed:",
+            teamRes.reason
+          );
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -754,8 +788,8 @@ export default function DashboardPage() {
           title="Today's Employee Performance"
           subtitle={
             teamReportDate
-              ? `Daily activity for ${teamReportDate} · Assigned leads, today's calls on worked leads, and today's status updates`
-              : "Assigned leads, today's calls on worked leads, and today's status updates"
+              ? `Daily activity for ${teamReportDate} · Assigned leads, today's calls, and today's status updates`
+              : "Assigned leads, today's calls, and today's status updates"
           }
           icon={
             <Target
