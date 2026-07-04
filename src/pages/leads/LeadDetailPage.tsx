@@ -4,7 +4,7 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
-import { Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import {
   getLeadById,
   updateLeadStatus,
