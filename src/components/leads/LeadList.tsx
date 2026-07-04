@@ -10,6 +10,7 @@ import {
   Pencil,
   RefreshCcw,
   Filter,
+  Trash2,
 } from "lucide-react";
 
 import {
@@ -18,6 +19,7 @@ import {
   getMyLeads,
   exportLeads,
   bulkAssignLeads,
+  deleteLead,
 } from "../../api/leadApi";
 
 import { getTeamUsers } from "../../api/teamApi";
@@ -417,6 +419,31 @@ function LeadList({ mode }: Props) {
         );
       }
     };
+
+  const handleDeleteLead = async (
+    leadId: string,
+    leadName: string
+  ) => {
+    if (
+      !confirm(
+        `Delete lead "${leadName}" permanently? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await deleteLead(leadId);
+      toast.success("Lead deleted");
+      setSelectedLeadIds((prev) =>
+        prev.filter((id) => id !== leadId)
+      );
+      fetchLeads({ force: true });
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to delete lead");
+    }
+  };
 
   if (loading) {
     return (
@@ -895,6 +922,22 @@ function LeadList({ mode }: Props) {
                           title="Reassign lead"
                         >
                           <RefreshCcw size={16} />
+                        </button>
+                      )}
+
+                      {hasRole(["super_admin"]) && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            handleDeleteLead(
+                              lead._id,
+                              lead.fullName
+                            )
+                          }
+                          className="p-2 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 transition"
+                          title="Delete lead"
+                        >
+                          <Trash2 size={16} />
                         </button>
                       )}
                     </div>

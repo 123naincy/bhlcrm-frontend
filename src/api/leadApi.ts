@@ -241,3 +241,8 @@ export const addLeadNote =
 
     return response.data;
   };
+
+export const deleteLead = async (id: string) => {
+  const response = await api.delete(`/leads/${id}`);
+  return response.data;
+};

@@ -4,11 +4,12 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import {
   getLeadById,
   updateLeadStatus,
   addLeadNote,
+  deleteLead,
 } from "../../api/leadApi";
 import toast from "react-hot-toast";
 import { getProjectLabel } from "../../utils/leadDisplay";
@@ -128,6 +129,9 @@ export default function LeadDetailPage() {
     user?.role === "super_admin" ||
     user?.role === "admin" ||
     user?.role === "sales_manager";
+
+  const canDeleteLead =
+    user?.role === "super_admin";
   const fetchLead = async () => {
     try {
       setLoading(true);
@@ -205,6 +209,26 @@ export default function LeadDetailPage() {
         );
       }
     };
+
+  const handleDeleteLead = async () => {
+    if (
+      !confirm(
+        "Delete this lead permanently? This cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await deleteLead(id!);
+      toast.success("Lead deleted");
+      navigate(backPath);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to delete lead");
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -241,10 +265,22 @@ export default function LeadDetailPage() {
 
   return (
     <div className="space-y-5">
-      <BackButton
-        label={backLabel}
-        onClick={() => navigate(backPath)}
-      />
+      <div className="flex items-center justify-between gap-4">
+        <BackButton
+          label={backLabel}
+          onClick={() => navigate(backPath)}
+        />
+
+        {canDeleteLead && (
+          <button
+            onClick={handleDeleteLead}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-50 text-red-600 hover:bg-red-100 transition text-sm font-medium"
+          >
+            <Trash2 size={16} />
+            Delete Lead
+          </button>
+        )}
+      </div>
 
       {/* TOP */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
