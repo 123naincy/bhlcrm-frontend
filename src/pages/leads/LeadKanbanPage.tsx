@@ -33,7 +33,8 @@ const STATUSES = [
     { key: "contacted", label: "CONTACTED" },
     { key: "follow_up", label: "FOLLOW UP" },
     { key: "site_visit_scheduled", label: "SITE VISIT" },
-    { key: "negotiation", label: "NEGOTIATION" },
+    { key: "office_meeting_done", label: "OFFICE MEETING" },
+    { key: "virtual_meeting_done", label: "VIRTUAL MEETING" },
     { key: "won", label: "WON" },
     { key: "lost", label: "LOST" },
 ];

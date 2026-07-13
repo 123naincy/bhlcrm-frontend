@@ -3,7 +3,6 @@ export const LEAD_STATUS_OPTIONS = [
   { value: "assigned", label: "Assigned" },
   { value: "contacted", label: "Contacted" },
   { value: "follow_up", label: "Follow Up" },
-  { value: "interested", label: "Interested" },
   {
     value: "site_visit_scheduled",
     label: "Site Visit Scheduled",
@@ -12,7 +11,14 @@ export const LEAD_STATUS_OPTIONS = [
     value: "site_visit_done",
     label: "Site Visit Done",
   },
-  { value: "negotiation", label: "Negotiation" },
+  {
+    value: "office_meeting_done",
+    label: "Office Meeting Done",
+  },
+  {
+    value: "virtual_meeting_done",
+    label: "Virtual Meeting Done",
+  },
   { value: "won", label: "Won" },
   { value: "lost", label: "Lost" },
   { value: "duplicate", label: "Duplicate" },
