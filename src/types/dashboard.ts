@@ -53,7 +53,17 @@ export interface ExecutiveDashboardStats {
   warmLeads: number;
   coldLeads: number;
   overdueFollowups: number;
+  todaySchedules?: number;
   conversionRate: number;
+}
+
+export interface ExecutiveScheduleLead {
+  _id: string;
+  fullName: string;
+  phone?: string;
+  status: string;
+  scheduledDate?: string;
+  temperature?: string;
 }
 
 export interface ExecutiveFollowupLead {
@@ -62,6 +72,7 @@ export interface ExecutiveFollowupLead {
   phone?: string;
   status: string;
   followUpDate?: string;
+  scheduledDate?: string;
   temperature?: string;
   updatedAt?: string;
 }

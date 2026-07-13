@@ -14,6 +14,7 @@ import {
     ThermometerSun,
     Snowflake,
     ArrowRight,
+    CalendarDays,
     AlertCircle,
     Kanban,
     List,
@@ -41,6 +42,7 @@ import {
   getMyRecentFollowups,
   getMyTrend,
   getTodayFollowups,
+  getTodaySchedules,
   getMyDailyActivity,
 } from "../../api/dashboardApi";
 
@@ -48,11 +50,18 @@ import type {
   DailyActivityPoint,
   ExecutiveDashboardStats,
   ExecutiveFollowupLead,
+  ExecutiveScheduleLead,
   MonthlyTrendPoint,
 } from "../../types/dashboard";
 
 import StatusBadge from "../../components/leads/StatusBadge";
 import TemperatureBadge from "../../components/leads/TemperatureBadge";
+import {
+  formatScheduleStatusLabel,
+} from "../../constants/scheduleStatuses";
+import {
+  formatDisplayDateTime,
+} from "../../utils/dateTimeLocal";
 
 const PIPELINE_COLORS = [
   "#4f46e5",
@@ -65,9 +74,11 @@ type ExecutiveDashboardCache = {
   stats: ExecutiveDashboardStats;
   followups: ExecutiveFollowupLead[];
   todayLeads: ExecutiveFollowupLead[];
+  todayScheduleLeads: ExecutiveScheduleLead[];
   trendData: MonthlyTrendPoint[];
   activityData: DailyActivityPoint[];
   todayFollowups: number;
+  todaySchedules: number;
 };
 
 let executiveDashboardCache:
@@ -87,6 +98,9 @@ export default function ExecutiveDashboard() {
   const [todayLeads, setTodayLeads] =
     useState<ExecutiveFollowupLead[]>([]);
 
+  const [todayScheduleLeads, setTodayScheduleLeads] =
+    useState<ExecutiveScheduleLead[]>([]);
+
   const [trendData, setTrendData] =
     useState<MonthlyTrendPoint[]>([]);
 
@@ -94,6 +108,9 @@ export default function ExecutiveDashboard() {
     useState<DailyActivityPoint[]>([]);
 
   const [todayFollowups, setTodayFollowups] =
+    useState(0);
+
+  const [todaySchedules, setTodaySchedules] =
     useState(0);
 
   const [loading, setLoading] =
@@ -110,10 +127,16 @@ export default function ExecutiveDashboard() {
     setStats(cache.stats);
     setFollowups(cache.followups);
     setTodayLeads(cache.todayLeads);
+    setTodayScheduleLeads(
+      cache.todayScheduleLeads
+    );
     setTrendData(cache.trendData);
     setActivityData(cache.activityData);
     setTodayFollowups(
       cache.todayFollowups
+    );
+    setTodaySchedules(
+      cache.todaySchedules
     );
   };
 
@@ -150,12 +173,14 @@ export default function ExecutiveDashboard() {
           followupRes,
           trendRes,
           todayRes,
+          scheduleRes,
           activityRes,
         ] = await Promise.all([
           getMyDashboard(),
           getMyRecentFollowups(),
           getMyTrend(),
           getTodayFollowups(),
+          getTodaySchedules(),
           getMyDailyActivity(),
         ]);
 
@@ -200,8 +225,14 @@ export default function ExecutiveDashboard() {
               followupRes.leads || [],
             todayLeads:
               todayRes.leads || [],
+            todayScheduleLeads:
+              scheduleRes.leads || [],
             todayFollowups:
               todayRes.count || 0,
+            todaySchedules:
+              scheduleRes.count ||
+              dashboardRes?.todaySchedules ||
+              0,
             activityData:
               activityRes.activity ||
               [],
@@ -425,6 +456,11 @@ export default function ExecutiveDashboard() {
             />
 
             <HeaderStat
+              label="Today's Schedules"
+              value={todaySchedules}
+            />
+
+            <HeaderStat
               label="Conversion"
               value={`${stats.conversionRate || 0}%`}
             />
@@ -443,6 +479,61 @@ export default function ExecutiveDashboard() {
           </div>
         </div>
       </div>
+
+      {todayScheduleLeads.length > 0 && (
+        <div className="rounded-3xl border border-cyan-200 bg-gradient-to-r from-cyan-50 to-sky-50 p-5 shadow-lg">
+          <div className="flex items-start gap-4">
+            <div className="rounded-2xl bg-cyan-100 p-3 text-cyan-700">
+              <CalendarDays size={24} />
+            </div>
+
+            <div className="flex-1">
+              <h2 className="text-lg font-bold text-slate-900">
+                Aaj {todayScheduleLeads.length} schedule hai
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-600">
+                Site visit / meeting aaj ke liye scheduled hain
+              </p>
+
+              <div className="mt-4 grid gap-2">
+                {todayScheduleLeads
+                  .slice(0, 5)
+                  .map((lead) => (
+                    <button
+                      key={lead._id}
+                      type="button"
+                      onClick={() =>
+                        openLead(lead._id)
+                      }
+                      className="flex items-center justify-between rounded-2xl bg-white/80 px-4 py-3 text-left hover:bg-white transition"
+                    >
+                      <div>
+                        <p className="font-semibold text-slate-900">
+                          {lead.fullName}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {formatScheduleStatusLabel(
+                            lead.status
+                          )}{" "}
+                          ·{" "}
+                          {formatDisplayDateTime(
+                            lead.scheduledDate
+                          )}
+                        </p>
+                      </div>
+
+                      <ArrowRight
+                        size={16}
+                        className="text-slate-400"
+                      />
+                    </button>
+                  ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* TEMPERATURE */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -503,6 +594,71 @@ export default function ExecutiveDashboard() {
         })}
       </div>
 
+      {/* TODAY SCHEDULES */}
+      <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
+        <div className="p-6 border-b flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-xl font-bold">
+              Today&apos;s Schedules
+            </h2>
+
+            <p className="text-sm text-slate-500 mt-1">
+              Site visit / office / virtual meeting scheduled for today
+            </p>
+          </div>
+
+          <span className="rounded-full bg-cyan-100 text-cyan-700 px-3 py-1 text-sm font-semibold">
+            {todaySchedules}
+          </span>
+        </div>
+
+        {todayScheduleLeads.length === 0 ? (
+          <div className="p-8 text-center text-slate-500">
+            No schedules for today.
+          </div>
+        ) : (
+          <div className="divide-y">
+            {todayScheduleLeads.map((lead) => (
+              <button
+                key={lead._id}
+                type="button"
+                onClick={() =>
+                  openLead(lead._id)
+                }
+                className="w-full flex items-center justify-between gap-4 p-4 text-left hover:bg-slate-50 transition"
+              >
+                <div>
+                  <p className="font-semibold text-slate-900">
+                    {lead.fullName}
+                  </p>
+
+                  <p className="text-sm text-slate-500 mt-1">
+                    {lead.phone || "No phone"}
+                  </p>
+
+                  <p className="text-xs text-cyan-700 mt-2 font-medium">
+                    {formatDisplayDateTime(
+                      lead.scheduledDate
+                    )}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 flex-wrap justify-end">
+                  <StatusBadge
+                    status={lead.status}
+                  />
+
+                  <ArrowRight
+                    size={16}
+                    className="text-slate-400"
+                  />
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* TODAY FOLLOWUPS */}
       <div className="bg-white rounded-3xl shadow-lg overflow-hidden">
         <div className="p-6 border-b flex items-center justify-between gap-3">
@@ -544,6 +700,14 @@ export default function ExecutiveDashboard() {
                   <p className="text-sm text-slate-500 mt-1">
                     {lead.phone || "No phone"}
                   </p>
+
+                  {lead.followUpDate && (
+                    <p className="text-xs text-indigo-600 mt-2 font-medium">
+                      {formatDisplayDateTime(
+                        lead.followUpDate
+                      )}
+                    </p>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap justify-end">

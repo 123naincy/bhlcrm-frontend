@@ -12,8 +12,16 @@ export const LEAD_STATUS_OPTIONS = [
     label: "Site Visit Done",
   },
   {
+    value: "office_meeting_scheduled",
+    label: "Office Meeting Scheduled",
+  },
+  {
     value: "office_meeting_done",
     label: "Office Meeting Done",
+  },
+  {
+    value: "virtual_meeting_scheduled",
+    label: "Virtual Meeting Scheduled",
   },
   {
     value: "virtual_meeting_done",

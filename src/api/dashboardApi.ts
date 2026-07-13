@@ -50,6 +50,16 @@ export const getTodayFollowups =
     return response.data;
   };
 
+export const getTodaySchedules =
+  async () => {
+    const response =
+      await api.get(
+        "/dashboard/today-schedules"
+      );
+
+    return response.data;
+  };
+
 export const getMyDailyActivity =
   async () => {
     const response =

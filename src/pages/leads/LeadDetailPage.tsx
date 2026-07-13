@@ -7,7 +7,7 @@ import {
 import { ArrowLeft, Trash2 } from "lucide-react";
 import {
   getLeadById,
-  updateLeadStatus,
+  updateLead,
   addLeadNote,
   deleteLead,
 } from "../../api/leadApi";
@@ -16,6 +16,14 @@ import { getProjectLabel } from "../../utils/leadDisplay";
 import {
   LEAD_STATUS_OPTIONS,
 } from "../../constants/leadStatuses";
+import {
+  requiresScheduleDate,
+} from "../../constants/scheduleStatuses";
+import ScheduleDateModal from "../../components/leads/ScheduleDateModal";
+import {
+  formatDisplayDateTime,
+  toDatetimeLocalValue,
+} from "../../utils/dateTimeLocal";
 import {
   getLeadRecordings,
   playRecording,
@@ -94,6 +102,15 @@ export default function LeadDetailPage() {
   const [noteText, setNoteText] =
     useState("");
 
+  const [scheduledDate, setScheduledDate] =
+    useState("");
+
+  const [scheduleModalOpen, setScheduleModalOpen] =
+    useState(false);
+
+  const [statusSaving, setStatusSaving] =
+    useState(false);
+
   const handlePlayRecording = async (
     recording: any
   ) => {
@@ -156,6 +173,12 @@ export default function LeadDetailPage() {
       setNoteText(
         res.lead.notes || ""
       );
+
+      setScheduledDate(
+        toDatetimeLocalValue(
+          res.lead.scheduledDate
+        )
+      );
     } catch (error) {
       console.error(error);
 
@@ -168,11 +191,28 @@ export default function LeadDetailPage() {
   };
   const handleStatusUpdate =
     async () => {
-      try {
-        await updateLeadStatus(
-          id!,
+      if (
+        requiresScheduleDate(
           selectedStatus
-        );
+        ) &&
+        !scheduledDate &&
+        !lead?.scheduledDate
+      ) {
+        setScheduleModalOpen(true);
+        return;
+      }
+
+      try {
+        setStatusSaving(true);
+
+        await updateLead(id!, {
+          status: selectedStatus,
+          ...(requiresScheduleDate(
+            selectedStatus
+          ) && scheduledDate
+            ? { scheduledDate }
+            : {}),
+        });
 
         toast.success(
           "Status updated"
@@ -185,8 +225,39 @@ export default function LeadDetailPage() {
         toast.error(
           "Status update failed"
         );
+      } finally {
+        setStatusSaving(false);
       }
     };
+
+  const handleScheduleModalConfirm = async (
+    nextScheduledDate: string
+  ) => {
+    try {
+      setStatusSaving(true);
+
+      await updateLead(id!, {
+        status: selectedStatus,
+        scheduledDate: nextScheduledDate,
+      });
+
+      setScheduledDate(nextScheduledDate);
+      setScheduleModalOpen(false);
+
+      toast.success(
+        "Schedule saved"
+      );
+
+      fetchLead();
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        "Schedule save failed"
+      );
+    } finally {
+      setStatusSaving(false);
+    }
+  };
 
   const handleSaveNote =
     async () => {
@@ -403,13 +474,46 @@ export default function LeadDetailPage() {
               )}
             </select>
 
+            {requiresScheduleDate(
+              selectedStatus
+            ) && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Schedule Date
+                </label>
+
+                <input
+                  type="datetime-local"
+                  value={scheduledDate}
+                  onChange={(event) =>
+                    setScheduledDate(
+                      event.target.value
+                    )
+                  }
+                  className="w-full border rounded-xl p-4"
+                />
+
+                {lead?.scheduledDate && (
+                  <p className="mt-2 text-xs text-slate-500">
+                    Current:{" "}
+                    {formatDisplayDateTime(
+                      lead.scheduledDate
+                    )}
+                  </p>
+                )}
+              </div>
+            )}
+
             <button
               onClick={
                 handleStatusUpdate
               }
-              className="bg-blue-600 text-white px-6 py-3 rounded-xl"
+              disabled={statusSaving}
+              className="bg-blue-600 text-white px-6 py-3 rounded-xl disabled:opacity-60"
             >
-              Update Status
+              {statusSaving
+                ? "Updating..."
+                : "Update Status"}
             </button>
           </div>
         </div>
@@ -553,6 +657,20 @@ export default function LeadDetailPage() {
           )}
         </div>
       </div>
+
+      <ScheduleDateModal
+        open={scheduleModalOpen}
+        leadName={lead?.fullName}
+        status={selectedStatus}
+        initialDate={scheduledDate}
+        loading={statusSaving}
+        onCancel={() =>
+          setScheduleModalOpen(false)
+        }
+        onConfirm={
+          handleScheduleModalConfirm
+        }
+      />
     </div>
   );
 }

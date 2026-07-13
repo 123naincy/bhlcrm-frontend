@@ -27,14 +27,22 @@ import {
     updateLead,
 } from "../../api/leadApi";
 import LeadPreviewDrawer from "../../components/leads/LeadPreviewDrawer";
+import ScheduleDateModal from "../../components/leads/ScheduleDateModal";
 import { getProjectLabel } from "../../utils/leadDisplay";
+import {
+    requiresScheduleDate,
+} from "../../constants/scheduleStatuses";
+import {
+    toDatetimeLocalValue,
+} from "../../utils/dateTimeLocal";
+
 const STATUSES = [
     { key: "new", label: "NEW" },
     { key: "contacted", label: "CONTACTED" },
     { key: "follow_up", label: "FOLLOW UP" },
     { key: "site_visit_scheduled", label: "SITE VISIT" },
-    { key: "office_meeting_done", label: "OFFICE MEETING" },
-    { key: "virtual_meeting_done", label: "VIRTUAL MEETING" },
+    { key: "office_meeting_scheduled", label: "OFFICE MEETING" },
+    { key: "virtual_meeting_scheduled", label: "VIRTUAL MEETING" },
     { key: "won", label: "WON" },
     { key: "lost", label: "LOST" },
 ];
@@ -83,6 +91,17 @@ export default function LeadKanbanPage() {
 
     const [selectedLeadId, setSelectedLeadId] =
         useState<string | null>(null);
+
+    const [scheduleModal, setScheduleModal] =
+        useState<{
+            leadId: string;
+            status: string;
+            leadName: string;
+            initialDate?: string;
+        } | null>(null);
+
+    const [scheduleSaving, setScheduleSaving] =
+        useState(false);
     const getTempClass = (temp: string) => {
         if (temp === "hot")
             return "bg-red-100 text-red-700";
@@ -265,6 +284,25 @@ export default function LeadKanbanPage() {
 
         if (!movedLead) return;
 
+        if (
+            requiresScheduleDate(
+                destinationStatus
+            )
+        ) {
+            setScheduleModal({
+                leadId,
+                status: destinationStatus,
+                leadName:
+                    movedLead.fullName ||
+                    "Lead",
+                initialDate:
+                    toDatetimeLocalValue(
+                        movedLead.scheduledDate
+                    ),
+            });
+            return;
+        }
+
         const updatedSource =
             sourceColumn.leads.filter(
                 (lead: any) =>
@@ -314,6 +352,40 @@ export default function LeadKanbanPage() {
             loadAllColumns({ force: true });
         } finally {
             setDragLoading(false);
+        }
+    };
+
+    const handleScheduleConfirm = async (
+        scheduledDate: string
+    ) => {
+        if (!scheduleModal) return;
+
+        try {
+            setScheduleSaving(true);
+
+            await updateLead(
+                scheduleModal.leadId,
+                {
+                    status:
+                        scheduleModal.status,
+                    scheduledDate,
+                }
+            );
+
+            toast.success(
+                "Schedule saved successfully"
+            );
+
+            setScheduleModal(null);
+            await loadAllColumns({
+                force: true,
+            });
+        } catch {
+            toast.error(
+                "Schedule save failed"
+            );
+        } finally {
+            setScheduleSaving(false);
         }
     };
 
@@ -693,6 +765,26 @@ export default function LeadKanbanPage() {
                     setDrawerOpen(false);
                     setSelectedLeadId(null);
                 }}
+            />
+
+            <ScheduleDateModal
+                open={Boolean(scheduleModal)}
+                leadName={
+                    scheduleModal?.leadName
+                }
+                status={
+                    scheduleModal?.status
+                }
+                initialDate={
+                    scheduleModal?.initialDate
+                }
+                loading={scheduleSaving}
+                onCancel={() =>
+                    setScheduleModal(null)
+                }
+                onConfirm={
+                    handleScheduleConfirm
+                }
             />
         </div>
   );

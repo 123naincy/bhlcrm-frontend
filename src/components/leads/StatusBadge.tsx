@@ -17,8 +17,12 @@ function StatusBadge({ status }: Props) {
       "bg-cyan-100 text-cyan-700",
     site_visit_done:
       "bg-teal-100 text-teal-700",
+    office_meeting_scheduled:
+      "bg-emerald-100 text-emerald-700",
     office_meeting_done:
       "bg-emerald-100 text-emerald-700",
+    virtual_meeting_scheduled:
+      "bg-lime-100 text-lime-700",
     virtual_meeting_done:
       "bg-lime-100 text-lime-700",
     negotiation:

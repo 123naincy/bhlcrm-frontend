@@ -24,6 +24,12 @@ import { getLeadFollowUps } from "../../api/followUpApi";
 import { UpdateLeadDrawer } from "./UpdateLeadDrawer";
 import { ReassignLeadDrawer } from "./ReassignLeadDrawer";
 import { getProjectLabel } from "../../utils/leadDisplay";
+import {
+  requiresScheduleDate,
+} from "../../constants/scheduleStatuses";
+import {
+  toDatetimeLocalValue,
+} from "../../utils/dateTimeLocal";
 
 interface Props {
   open: boolean;
@@ -57,6 +63,9 @@ export default function LeadPreviewDrawer({
   const [followUpDate, setFollowUpDate] =
     useState("");
 
+  const [scheduledDate, setScheduledDate] =
+    useState("");
+
   useEffect(() => {
     if (open && leadId) {
       loadLead();
@@ -84,13 +93,15 @@ export default function LeadPreviewDrawer({
       );
 
       setFollowUpDate(
-        leadRes.lead?.followUpDate
-          ? new Date(
-              leadRes.lead.followUpDate
-            )
-              .toISOString()
-              .slice(0, 16)
-          : ""
+        toDatetimeLocalValue(
+          leadRes.lead?.followUpDate
+        )
+      );
+
+      setScheduledDate(
+        toDatetimeLocalValue(
+          leadRes.lead?.scheduledDate
+        )
       );
 
       setTimeline(
@@ -113,6 +124,13 @@ export default function LeadPreviewDrawer({
     status: string
   ) => {
     try {
+      if (requiresScheduleDate(status)) {
+        toast.error(
+          "Please set schedule date below and save"
+        );
+        return;
+      }
+
       await updateLead(leadId || "", {
         status,
       });
@@ -132,6 +150,9 @@ export default function LeadPreviewDrawer({
       await updateLead(leadId || "", {
         temperature,
         followUpDate,
+        ...(scheduledDate
+          ? { scheduledDate }
+          : {}),
       });
 
       toast.success(
@@ -305,6 +326,19 @@ export default function LeadPreviewDrawer({
                     )
                   }
                   className="p-4 rounded-2xl border"
+                  placeholder="Follow-up date"
+                />
+
+                <input
+                  type="datetime-local"
+                  value={scheduledDate}
+                  onChange={(e) =>
+                    setScheduledDate(
+                      e.target.value
+                    )
+                  }
+                  className="p-4 rounded-2xl border"
+                  placeholder="Schedule date"
                 />
               </div>
 
