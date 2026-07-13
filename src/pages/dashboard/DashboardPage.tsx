@@ -28,7 +28,6 @@ import {
   XCircle,
   Sparkles,
   RefreshCw,
-  PhoneCall,
 } from "lucide-react";
 
 import {
@@ -745,7 +744,7 @@ export default function DashboardPage() {
                 <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="rounded-xl bg-white/15 p-4 backdrop-blur-sm">
                     <p className="text-sm text-white/80">
-                      Status Updates Today
+                      Leads Updated Today
                     </p>
                     <p className="mt-1 text-2xl font-bold">
                       {topPerformer.statusUpdates ?? 0}
@@ -775,8 +774,8 @@ export default function DashboardPage() {
           title="Today's Employee Performance"
           subtitle={
             teamReportDate
-              ? `Daily activity for ${teamReportDate} · Assigned leads, today's calls, and today's status updates`
-              : "Assigned leads, today's calls, and today's status updates"
+              ? `Daily activity for ${teamReportDate} · Total assigned leads, pending, and unique leads updated today`
+              : "Total assigned leads, pending, and unique leads updated today"
           }
           icon={
             <Target
@@ -802,16 +801,19 @@ export default function DashboardPage() {
                         Employee
                       </th>
                       <th className="px-4 py-3 font-medium">
-                        Assigned
+                        Total Leads
                       </th>
                       <th className="px-4 py-3 font-medium">
-                        Calls Today
+                        Pending
+                        <span className="block text-[11px] font-normal text-slate-400">
+                          Status not changed yet
+                        </span>
                       </th>
                       <th className="px-4 py-3 font-medium">
-                        Status Updates Today
-                      </th>
-                      <th className="px-4 py-3 font-medium">
-                        Won
+                        Leads Updated Today
+                        <span className="block text-[11px] font-normal text-slate-400">
+                          Unique leads
+                        </span>
                       </th>
                     </tr>
                   </thead>
@@ -835,17 +837,11 @@ export default function DashboardPage() {
                         <td className="px-4 py-3 font-semibold text-indigo-600">
                           {member.assignedLeads}
                         </td>
-                        <td className="px-4 py-3">
-                          <span className="inline-flex items-center gap-1 font-medium text-slate-700">
-                            <PhoneCall size={14} />
-                            {member.totalCalls}
-                          </span>
+                        <td className="px-4 py-3 font-semibold text-amber-600">
+                          {member.pendingLeads}
                         </td>
                         <td className="px-4 py-3 font-semibold text-emerald-600">
                           {member.statusUpdates}
-                        </td>
-                        <td className="px-4 py-3 font-semibold text-green-700">
-                          {member.wonLeads}
                         </td>
                       </tr>
                     ))}
@@ -888,23 +884,23 @@ export default function DashboardPage() {
 
                   <Bar
                     dataKey="assignedLeads"
-                    name="Assigned"
+                    name="Total Leads"
                     fill="#6366F1"
                     radius={[0, 10, 10, 0]}
                     barSize={14}
                   />
 
                   <Bar
-                    dataKey="totalCalls"
-                    name="Calls Today"
-                    fill="#0EA5E9"
+                    dataKey="pendingLeads"
+                    name="Pending"
+                    fill="#F59E0B"
                     radius={[0, 10, 10, 0]}
                     barSize={14}
                   />
 
                   <Bar
                     dataKey="statusUpdates"
-                    name="Status Updates Today"
+                    name="Leads Updated Today"
                     fill="#10B981"
                     radius={[0, 10, 10, 0]}
                     barSize={14}

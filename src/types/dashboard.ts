@@ -18,14 +18,11 @@ export interface TeamPerformance {
   employeeName: string;
   role?: string;
   assignedLeads: number;
-  workedLeads?: number;
   pendingLeads?: number;
-  hotLeads: number;
-  wonLeads: number;
+  wonLeads?: number;
   totalCalls?: number;
   statusUpdates?: number;
   followUpUpdates?: number;
-  conversionRate?: number;
 }
 
 export interface TopPerformer {

@@ -48,9 +48,7 @@ export function mapTeamPerformanceRows(
       assignedLeads:
         row.assignedLeads || 0,
       pendingLeads:
-        row.pendingLeads ||
-        row.assignedLeads ||
-        0,
+        row.pendingLeads || 0,
       totalCalls:
         row.totalCalls || 0,
       statusUpdates:

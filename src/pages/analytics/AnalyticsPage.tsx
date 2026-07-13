@@ -278,7 +278,7 @@ function AnalyticsPage() {
                 Team Performance
               </h2>
               <p className="text-slate-500">
-                Assigned leads by executive
+                Total leads, pending without status change, and updates today
               </p>
             </div>
           </div>
