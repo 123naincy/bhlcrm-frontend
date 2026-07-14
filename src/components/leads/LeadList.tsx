@@ -765,7 +765,7 @@ function LeadList({ mode }: Props) {
                 </th>
 
                 <th className="px-6 py-5 text-left">
-                  Last Updated
+                  Last Worked
                 </th>
 
                 <th className="px-6 py-5 text-left">
@@ -872,7 +872,8 @@ function LeadList({ mode }: Props) {
 
                   <td className="px-6 py-5">
                     {new Date(
-                      lead.updatedAt ||
+                      lead.lastWorkedAt ||
+                        lead.updatedAt ||
                         lead.createdAt
                     ).toLocaleDateString()}
                   </td>

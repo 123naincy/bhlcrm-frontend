@@ -74,6 +74,7 @@ export interface ExecutiveFollowupLead {
   followUpDate?: string;
   scheduledDate?: string;
   temperature?: string;
+  lastWorkedAt?: string;
   updatedAt?: string;
 }
 
