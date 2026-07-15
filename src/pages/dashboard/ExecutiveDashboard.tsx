@@ -168,21 +168,61 @@ export default function ExecutiveDashboard() {
       }
 
       try {
-        const [
-          dashboardRes,
-          followupRes,
-          trendRes,
-          todayRes,
-          scheduleRes,
-          activityRes,
-        ] = await Promise.all([
-          getMyDashboard(),
-          getMyRecentFollowups(),
-          getMyTrend(),
-          getTodayFollowups(),
-          getTodaySchedules(),
-          getMyDailyActivity(),
-        ]);
+        const results =
+          await Promise.allSettled([
+            getMyDashboard(),
+            getMyRecentFollowups(),
+            getMyTrend(),
+            getTodayFollowups(),
+            getTodaySchedules(),
+            getMyDailyActivity(),
+          ]);
+
+        const dashboardRes =
+          results[0].status ===
+          "fulfilled"
+            ? results[0].value
+            : null;
+        const followupRes =
+          results[1].status ===
+          "fulfilled"
+            ? results[1].value
+            : { leads: [] };
+        const trendRes =
+          results[2].status ===
+          "fulfilled"
+            ? results[2].value
+            : { trend: [] };
+        const todayRes =
+          results[3].status ===
+          "fulfilled"
+            ? results[3].value
+            : { leads: [], count: 0 };
+        const scheduleRes =
+          results[4].status ===
+          "fulfilled"
+            ? results[4].value
+            : { leads: [], count: 0 };
+        const activityRes =
+          results[5].status ===
+          "fulfilled"
+            ? results[5].value
+            : { activity: [] };
+
+        if (!dashboardRes) {
+          throw new Error(
+            "Failed to load dashboard stats"
+          );
+        }
+
+        results.forEach((result, index) => {
+          if (result.status === "rejected") {
+            console.error(
+              `Executive dashboard request ${index} failed:`,
+              result.reason
+            );
+          }
+        });
 
         const monthNames = [
           "",
@@ -220,7 +260,13 @@ export default function ExecutiveDashboard() {
 
         const cache: ExecutiveDashboardCache =
           {
-            stats: dashboardRes,
+            stats: {
+              ...dashboardRes,
+              todaySchedules:
+                scheduleRes.count ||
+                dashboardRes?.todaySchedules ||
+                0,
+            },
             followups:
               followupRes.leads || [],
             todayLeads:
