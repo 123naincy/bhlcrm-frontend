@@ -26,8 +26,8 @@ import {
 } from "../../utils/dateTimeLocal";
 import {
   getLeadRecordings,
-  playRecording,
 } from "../../api/callLogApi";
+import RecordingPlayer from "../../components/leads/RecordingPlayer";
 import { getCurrentUser } from "../../utils/auth";
 
 function getLeadListPath() {
@@ -111,28 +111,6 @@ export default function LeadDetailPage() {
   const [statusSaving, setStatusSaving] =
     useState(false);
 
-  const handlePlayRecording = async (
-    recording: any
-  ) => {
-    try {
-      const res = await playRecording(
-        recording._id
-      );
-      if (res?.url) {
-        window.open(res.url, "_blank");
-      } else {
-        toast.error(
-          "Playback URL not available"
-        );
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error(
-        "Failed to play recording"
-      );
-    }
-  };
-
   useEffect(() => {
     if (id) {
       fetchLead();
@@ -141,11 +119,6 @@ export default function LeadDetailPage() {
   const user = JSON.parse(
     localStorage.getItem("user") || "{}"
   );
-
-  const canPlayRecording =
-    user?.role === "super_admin" ||
-    user?.role === "admin" ||
-    user?.role === "sales_manager";
 
   const canDeleteLead =
     user?.role === "super_admin";
@@ -553,60 +526,28 @@ export default function LeadDetailPage() {
       {/* recording section */}
       {/* CALL RECORDINGS */}
 
-      {canPlayRecording && (
-        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
-          <h2 className="text-sm font-semibold mb-4">
-            Call Recordings
-          </h2>
+      <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+        <h2 className="text-sm font-semibold mb-4">
+          Call Recordings
+        </h2>
 
-          {recordings.length === 0 ? (
-            <p className="text-slate-500">
-              No recordings found
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {recordings.map(
-                (recording: any) => (
-                  <div
-                    key={recording._id}
-                    className="border rounded-xl p-4 flex justify-between items-center"
-                  >
-                    <div>
-                      <p className="font-medium">
-                        {recording.callType}
-                      </p>
-
-                      <p className="text-sm text-slate-500">
-                        Duration:
-                        {" "}
-                        {recording.duration}
-                        s
-                      </p>
-
-                      <p className="text-xs text-slate-400">
-                        {new Date(
-                          recording.callDate
-                        ).toLocaleString()}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() =>
-                        handlePlayRecording(
-                          recording
-                        )
-                      }
-                      className="bg-green-600 text-white px-4 py-2 rounded-lg"
-                    >
-                      ▶ Play Recording
-                    </button>
-                  </div>
-                )
-              )}
-            </div>
-          )}
-        </div>
-      )}
+        {recordings.length === 0 ? (
+          <p className="text-slate-500">
+            No recordings found
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {recordings.map(
+              (recording: any) => (
+                <RecordingPlayer
+                  key={recording._id}
+                  recording={recording}
+                />
+              )
+            )}
+          </div>
+        )}
+      </div>
       {/* TIMELINE */}
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
         <h2 className="text-sm font-semibold mb-4">
