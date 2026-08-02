@@ -97,6 +97,8 @@ function App() {
             element={
               <ProtectedRoute
                 allowedRoles={[
+                  "admin",
+                  "sales_manager",
                   "sales_executive",
                   "telecaller",
                 ]}

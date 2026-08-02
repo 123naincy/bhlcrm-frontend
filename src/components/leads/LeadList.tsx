@@ -599,43 +599,45 @@ function LeadList({ mode }: Props) {
               Cold
             </option>
           </select>
-          {hasRole([
-            "super_admin",
-            "admin",
-            "sales_manager",
-          ]) && (
-            <select
-              value={selectedUserId}
-              onChange={(e) =>
-                setSelectedUserId(
-                  e.target.value
-                )
-              }
-              className="bg-slate-100 rounded-xl px-4 py-3"
-            >
-              <option value="">
-                All Team Members
-              </option>
-
-              {teamUsers
-                ?.filter((user: any) =>
-                  [
-                    "sales_executive",
-                    "telecaller",
-                  ].includes(
-                    user.role
+          {mode !== "my" &&
+            hasRole([
+              "super_admin",
+              "admin",
+              "sales_manager",
+            ]) && (
+              <select
+                value={selectedUserId}
+                onChange={(e) =>
+                  setSelectedUserId(
+                    e.target.value
                   )
-                )
-                .map((user: any) => (
-                  <option
-                    key={user._id}
-                    value={user._id}
-                  >
-                    {user.fullName}
-                  </option>
-                ))}
-            </select>
-          )}
+                }
+                className="bg-slate-100 rounded-xl px-4 py-3"
+              >
+                <option value="">
+                  All Team Members
+                </option>
+
+                {teamUsers
+                  ?.filter((user: any) =>
+                    [
+                      "admin",
+                      "sales_manager",
+                      "sales_executive",
+                      "telecaller",
+                    ].includes(user.role)
+                  )
+
+                  .map((user: any) => (
+                    <option
+                      key={user._id}
+                      value={user._id}
+                    >
+                      {user.fullName}
+                    </option>
+                  ))}
+              </select>
+            )}
           <select
             value={dateRange}
             onChange={(e) =>
@@ -703,7 +705,7 @@ function LeadList({ mode }: Props) {
               </div>
             )
           }
-          
+
           <button
             onClick={handleFilter}
             className="bg-purple-600 text-white rounded-xl py-3 flex items-center justify-center gap-2"
@@ -873,8 +875,8 @@ function LeadList({ mode }: Props) {
                   <td className="px-6 py-5">
                     {new Date(
                       lead.lastWorkedAt ||
-                        lead.updatedAt ||
-                        lead.createdAt
+                      lead.updatedAt ||
+                      lead.createdAt
                     ).toLocaleDateString()}
                   </td>
 
@@ -979,10 +981,14 @@ function LeadList({ mode }: Props) {
               {teamUsers
                 .filter((user: any) =>
                   [
+                    "admin",
+                    "sales_manager",
                     "sales_executive",
                     "telecaller",
                   ].includes(
-                    user.role
+                    String(user.role)
+                      .trim()
+                      .toLowerCase()
                   )
                 )
                 .map((user: any) => (
@@ -990,8 +996,7 @@ function LeadList({ mode }: Props) {
                     key={user._id}
                     value={user._id}
                   >
-                    {user.fullName} (
-                    {user.role})
+                    {user.fullName}
                   </option>
                 ))}
             </select>
