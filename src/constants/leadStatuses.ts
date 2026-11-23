@@ -3,6 +3,7 @@ export const LEAD_STATUS_OPTIONS = [
   { value: "assigned", label: "Assigned" },
   { value: "contacted", label: "Contacted" },
   { value: "follow_up", label: "Follow Up" },
+  { value: "not_picked", label: "Not Picked" },
   {
     value: "site_visit_scheduled",
     label: "Site Visit Scheduled",
@@ -31,6 +32,7 @@ export const LEAD_STATUS_OPTIONS = [
   { value: "lost", label: "Lost" },
   { value: "duplicate", label: "Duplicate" },
   { value: "junk", label: "Junk" },
+   { value: "Others", label: "Others" },
 ] as const;
 
 export function formatLeadStatusLabel(

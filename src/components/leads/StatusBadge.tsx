@@ -12,7 +12,7 @@ function StatusBadge({ status }: Props) {
     assigned: "bg-indigo-100 text-indigo-700",
     contacted: "bg-blue-100 text-blue-700",
     follow_up: "bg-orange-100 text-orange-700",
-    interested: "bg-violet-100 text-violet-700",
+    not_picked: "bg-violet-100 text-violet-700",
     site_visit_scheduled:
       "bg-cyan-100 text-cyan-700",
     site_visit_done:
@@ -25,13 +25,12 @@ function StatusBadge({ status }: Props) {
       "bg-lime-100 text-lime-700",
     virtual_meeting_done:
       "bg-lime-100 text-lime-700",
-    negotiation:
-      "bg-amber-100 text-amber-700",
     won: "bg-green-100 text-green-700",
     lost: "bg-slate-200 text-slate-700",
     duplicate:
       "bg-purple-100 text-purple-700",
     junk: "bg-red-100 text-red-700",
+    Others: "bg-gray-100 text-gray-700",
   };
 
   return (
