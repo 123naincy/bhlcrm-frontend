@@ -1,5 +1,4 @@
 import {
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -20,6 +19,8 @@ import {
   exportLeads,
   bulkAssignLeads,
   deleteLead,
+  getLeadFilterOptions,
+
 } from "../../api/leadApi";
 
 import { getTeamUsers } from "../../api/teamApi";
@@ -41,26 +42,12 @@ interface Props {
   mode: "all" | "assigned" | "my";
 }
 
-type LeadListMode = "all" | "assigned" | "my";
-
-type LeadListCacheEntry = {
-  leads: any[];
-  search: string;
-  status: string;
-  dateRange: string;
-  fromDate: string;
-  toDate: string;
-  temperature: string;
-  selectedUserId: string;
-};
-
-const leadListCache: Partial<
-  Record<LeadListMode, LeadListCacheEntry>
-> = {};
-
 function LeadList({ mode }: Props) {
+  return <LeadListContent key={mode} mode={mode} />;
+}
+
+function LeadListContent({ mode }: Props) {
   const navigate = useNavigate();
-  const cached = leadListCache[mode];
   const listPath =
     mode === "my"
       ? "/leads/my"
@@ -68,161 +55,198 @@ function LeadList({ mode }: Props) {
         ? "/leads/assigned"
         : "/leads/all";
   const [leads, setLeads] = useState<any[]>(
-    cached?.leads ?? []
+    []
   );
-  const [loading, setLoading] = useState(!cached);
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] =
     useState(false);
-  const loadingRef = useRef(false);
+  const requestId = useRef(0);
+  const appliedParams = useRef<ReturnType<typeof getLeadParams>>({} as ReturnType<typeof getLeadParams>);
   const [search, setSearch] = useState(
-    cached?.search ?? ""
+    ""
   );
   const [status, setStatus] = useState(
-    cached?.status ?? ""
+    ""
   );
   const [dateRange, setDateRange] = useState(
-    cached?.dateRange ?? ""
+    ""
   );
   const [fromDate, setFromDate] = useState(
-    cached?.fromDate ?? ""
+    ""
   );
   const [toDate, setToDate] = useState(
-    cached?.toDate ?? ""
+    ""
   );
   const [temperature, setTemperature] = useState(
-    cached?.temperature ?? ""
+    ""
   );
+  const [projectName, setProjectName] = useState(
+    ""
+  );
+  const [source, setSource] = useState(
+    ""
+  );
+
+  const [campaignName, setCampaignName] = useState(
+    ""
+  );
+  const [adSetName, setAdSetName] = useState(
+    ""
+  );
+  const [adName, setAdName] = useState(
+    ""
+  );
+
+  const [city, setCity] = useState(
+    ""
+  );
+  const [propertyType, setPropertyType] = useState(
+    ""
+  );
+  const [budget, setBudget] = useState(
+    ""
+  );
+
+  const [brandId, setBrandId] = useState(
+    ""
+  );
+  const [sourceType, setSourceType] = useState(
+    ""
+  );
+  const [isDuplicate, setIsDuplicate] = useState(
+    ""
+  );
+
+  const [advancedFilters, setAdvancedFilters] = useState(false);
+  const [filterOptions, setFilterOptions] = useState({
+  projects: [] as string[],
+  sources: [] as string[],
+  sourceTypes: [] as string[],
+  campaigns: [] as string[],
+  adSets: [] as string[],
+  adNames: [] as string[],
+  cities: [] as string[],
+  propertyTypes: [] as string[],
+  budgets: [] as string[],
+  brands: [] as string[],
+});
+
+const [filterOptionsLoading, setFilterOptionsLoading] =
+  useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [assignUserId, setAssignUserId] = useState("");
+  const [optionsVersion, setOptionsVersion] = useState(0);
   const [teamUsers, setTeamUsers] = useState<any[]>([]);
   const [selectedUserId, setSelectedUserId] =
-    useState(cached?.selectedUserId ?? "");
+    useState("");
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [editLead, setEditLead] = useState<any>(null);
   const [reassignLeadId, setReassignLeadId] = useState<string | null>(null);
   const [updateOpen, setUpdateOpen] = useState(false);
   const [reassignOpen, setReassignOpen] = useState(false);
+
   const getLeadParams = () => ({
     search: search || undefined,
     status: status || undefined,
     temperature: temperature || undefined,
     assignedTo: selectedUserId || undefined,
+
     dateRange: dateRange || undefined,
     fromDate: fromDate || undefined,
     toDate: toDate || undefined,
+
+    brandId: brandId || undefined,
+    projectName: projectName || undefined,
+    source: source || undefined,
+    sourceType: sourceType || undefined,
+
+    campaignName: campaignName || undefined,
+    adSetName: adSetName || undefined,
+    adName: adName || undefined,
+
+    city: city || undefined,
+    propertyType: propertyType || undefined,
+    budget: budget || undefined,
+    isDuplicate: isDuplicate || undefined,
   });
-
-  const fetchLeads = useCallback(
-    async (options?: {
-      silent?: boolean;
-      force?: boolean;
-    }) => {
-      const silent =
-        options?.silent ?? false;
-      const force =
-        options?.force ?? false;
-
-      if (loadingRef.current) {
-        return;
-      }
-
-      if (
-        !force &&
-        leadListCache[mode]
-      ) {
-        const entry =
-          leadListCache[mode]!;
-
-        setLeads(entry.leads);
-        setSearch(entry.search);
-        setStatus(entry.status);
-        setDateRange(entry.dateRange);
-        setFromDate(entry.fromDate);
-        setToDate(entry.toDate);
-        setTemperature(entry.temperature);
-        setSelectedUserId(
-          entry.selectedUserId
-        );
-        setLoading(false);
-        return;
-      }
-
-      loadingRef.current = true;
-
-      if (leadListCache[mode]) {
-        setRefreshing(true);
-      } else if (!silent) {
-        setLoading(true);
-      }
-
-      try {
-        let res;
-
-        const params = getLeadParams();
-
-        if (mode === "all") {
-          res = await getAllLeads(params);
-        } else if (
-          mode === "assigned"
-        ) {
-          res =
-            await getAssignedLeads(
-              params
-            );
-        } else {
-          res = await getMyLeads(params);
-        }
-
-        const nextLeads = res.leads || [];
-
-        leadListCache[mode] = {
-          leads: nextLeads,
-          search,
-          status,
-          dateRange,
-          fromDate,
-          toDate,
-          temperature,
-          selectedUserId,
-        };
-
-        setLeads(nextLeads);
-      } catch (error) {
+  const fetchLeads = async (options?: {
+    silent?: boolean;
+    force?: boolean;
+    params?: ReturnType<typeof getLeadParams>;
+  }) => {
+    const id = ++requestId.current;
+    const params = options?.params ?? appliedParams.current;
+    setRefreshing(true);
+    setSelectedLeadIds([]);
+    try {
+      const res = mode === "all" ? await getAllLeads(params)
+        : mode === "assigned" ? await getAssignedLeads(params)
+        : await getMyLeads(params);
+      if (id !== requestId.current) return;
+      appliedParams.current = params;
+      setLeads(res.leads || []);
+    } catch (error) {
+      if (id === requestId.current) {
         console.error(error);
-
-        toast.error(
-          "Failed to load leads"
-        );
-      } finally {
-        loadingRef.current = false;
-
-        if (!silent) {
-          setLoading(false);
-        }
-
+        toast.error("Failed to load leads");
+      }
+    } finally {
+      if (id === requestId.current) {
+        setLoading(false);
         setRefreshing(false);
       }
-    },
-    [
-      mode,
-      search,
-      status,
-      dateRange,
-      fromDate,
-      toDate,
-      temperature,
-      selectedUserId,
-    ]
-  );
+    }
+  };
 
   useEffect(() => {
     void fetchLeads();
-
-    if (mode !== "my") {
-      fetchTeamUsers();
-    }
+    if (mode !== "my") void fetchTeamUsers();
+    return () => { requestId.current++; };
   }, [mode]);
+  useEffect(() => {
+  let active = true;
 
+  const loadFilterOptions = async () => {
+    try {
+      setFilterOptionsLoading(true);
+
+      const res = await getLeadFilterOptions({
+        mode,
+        projectName: projectName || undefined,
+        source: source || undefined,
+        campaignName: campaignName || undefined,
+        adSetName: adSetName || undefined,
+      });
+
+      if (active && res.success) {
+        setFilterOptions(res.options);
+      }
+    } catch (error) {
+      if (active) {
+        console.error("Filter options error:", error);
+        toast.error("Failed to load filter options");
+      }
+    } finally {
+      if (active) {
+        setFilterOptionsLoading(false);
+      }
+    }
+  };
+
+  void loadFilterOptions();
+
+  return () => {
+    active = false;
+  };
+}, [
+  mode,
+  projectName,
+  source,
+  campaignName,
+  adSetName,
+  optionsVersion,
+]);
   const fetchTeamUsers =
     async () => {
       try {
@@ -242,34 +266,39 @@ function LeadList({ mode }: Props) {
     };
 
   const handleFilter = async () => {
-    try {
-      await fetchLeads({ force: true });
-    } catch (error) {
-      console.error(error);
-
-      toast.error(
-        "Filter failed"
-      );
+    if (dateRange === "custom" && (!fromDate || !toDate || fromDate > toDate)) {
+      toast.error("Select a valid date range");
+      return;
     }
+    await fetchLeads({ params: getLeadParams() });
   };
 
-  const handleLeadUpdated = (
-    updatedLead: any
-  ) => {
-    if (updatedLead) {
-      setLeads((prev) => [
-        updatedLead,
-        ...prev.filter(
-          (lead) =>
-            lead._id !== updatedLead._id
-        ),
-      ]);
-    }
+  const handleResetFilters = () => {
+    setSearch("");
+    setStatus("");
+    setTemperature("");
+    setSelectedUserId("");
+    setDateRange("");
+    setFromDate("");
+    setToDate("");
+    setBrandId("");
+    setProjectName("");
+    setSource("");
+    setSourceType("");
+    setCampaignName("");
+    setAdSetName("");
+    setAdName("");
+    setCity("");
+    setPropertyType("");
+    setBudget("");
+    setIsDuplicate("");
+    void fetchLeads({ params: {} as ReturnType<typeof getLeadParams> });
+    setOptionsVersion((v) => v + 1);
+  };
 
-    void fetchLeads({
-      silent: true,
-      force: true,
-    });
+  const handleLeadUpdated = (_updatedLead: any) => {
+    void fetchLeads();
+    setOptionsVersion((v) => v + 1);
   };
 
   const toggleLeadSelection = (
@@ -315,29 +344,10 @@ function LeadList({ mode }: Props) {
           }
         );
 
-        const filters = {
-          search:
-            search ||
-            undefined,
-          status:
-            status ||
-            undefined,
-          temperature:
-            temperature ||
-            undefined,
-          assignedTo:
-            selectedUserId ||
-            undefined,
-          dateRange:
-            dateRange ||
-            undefined,
-          fromDate:
-            fromDate ||
-            undefined,
-          toDate:
-            toDate ||
-            undefined,
-        };
+       const filters = {
+  ...appliedParams.current,
+  mode,
+};
 
         const blob =
           await exportLeads(
@@ -368,6 +378,7 @@ function LeadList({ mode }: Props) {
         link.click();
 
         link.remove();
+        window.URL.revokeObjectURL(url);
 
         toast.success(
           "Excel downloaded",
@@ -389,7 +400,7 @@ function LeadList({ mode }: Props) {
 
   const handleBulkAssign =
     async () => {
-      if (!selectedUserId) {
+      if (!assignUserId || selectedLeadIds.length === 0) {
         toast.error(
           "Select user"
         );
@@ -399,7 +410,7 @@ function LeadList({ mode }: Props) {
       try {
         await bulkAssignLeads(
           selectedLeadIds,
-          selectedUserId
+          assignUserId
         );
 
         toast.success(
@@ -407,7 +418,7 @@ function LeadList({ mode }: Props) {
         );
 
         setAssignOpen(false);
-        setSelectedUserId("");
+        setAssignUserId("");
         setSelectedLeadIds([]);
 
         fetchLeads({ force: true });
@@ -474,6 +485,7 @@ function LeadList({ mode }: Props) {
           <button
             onClick={() => {
               void fetchLeads({ force: true });
+              setOptionsVersion((v) => v + 1);
             }}
             disabled={refreshing}
             className="bg-slate-200 text-slate-800 px-4 py-2 rounded-lg flex items-center gap-2 text-sm hover:bg-slate-300 disabled:opacity-60"
@@ -513,7 +525,7 @@ function LeadList({ mode }: Props) {
           {mode !== "my" && (
             <button
               onClick={() =>
-                setAssignOpen(true)
+                { setAssignUserId(""); setAssignOpen(true); }
               }
               disabled={
                 selectedLeadIds.length === 0
@@ -713,13 +725,116 @@ function LeadList({ mode }: Props) {
             <Filter size={18} />
             Filter
           </button>
+
+          <button
+            type="button"
+            onClick={() => setAdvancedFilters((current) => !current)}
+            className="bg-slate-200 text-slate-800 rounded-xl py-3 flex items-center justify-center gap-2"
+          >
+            <Filter size={18} />
+            {advancedFilters ? "Hide Filters" : "More Filters"}
+          </button>
+        </div>
+
+        {advancedFilters && (
+          <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-4 mt-4">
+            <select aria-label="Projects" value={projectName}
+              onChange={(e) => { setProjectName(e.target.value); setCampaignName(""); setAdSetName(""); setAdName(""); }}
+              disabled={filterOptionsLoading}
+              className="w-full min-w-0 bg-slate-100 rounded-xl px-4 py-3">
+              <option value="">All Projects</option>
+              {projectName && !filterOptions.projects.includes(projectName) && <option value={projectName}>{projectName}</option>}
+              {filterOptions.projects.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select aria-label="Sources" value={source}
+              onChange={(e) => { setSource(e.target.value); setCampaignName(""); setAdSetName(""); setAdName(""); }}
+              disabled={filterOptionsLoading}
+              className="w-full min-w-0 bg-slate-100 rounded-xl px-4 py-3">
+              <option value="">All Sources</option>
+              {source && !filterOptions.sources.includes(source) && <option value={source}>{source}</option>}
+              {filterOptions.sources.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select aria-label="Campaigns" value={campaignName}
+              onChange={(e) => { setCampaignName(e.target.value); setAdSetName(""); setAdName(""); }}
+              disabled={filterOptionsLoading}
+              className="w-full min-w-0 bg-slate-100 rounded-xl px-4 py-3">
+              <option value="">All Campaigns</option>
+              {campaignName && !filterOptions.campaigns.includes(campaignName) && <option value={campaignName}>{campaignName}</option>}
+              {filterOptions.campaigns.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select aria-label="Ad Sets" value={adSetName}
+              onChange={(e) => { setAdSetName(e.target.value); setAdName(""); }}
+              disabled={filterOptionsLoading}
+              className="w-full min-w-0 bg-slate-100 rounded-xl px-4 py-3">
+              <option value="">All Ad Sets</option>
+              {adSetName && !filterOptions.adSets.includes(adSetName) && <option value={adSetName}>{adSetName}</option>}
+              {filterOptions.adSets.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select aria-label="Ads" value={adName}
+              onChange={(e) => { setAdName(e.target.value); }}
+              disabled={filterOptionsLoading}
+              className="w-full min-w-0 bg-slate-100 rounded-xl px-4 py-3">
+              <option value="">All Ads</option>
+              {adName && !filterOptions.adNames.includes(adName) && <option value={adName}>{adName}</option>}
+              {filterOptions.adNames.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select aria-label="Cities" value={city}
+              onChange={(e) => { setCity(e.target.value); }}
+              disabled={filterOptionsLoading}
+              className="w-full min-w-0 bg-slate-100 rounded-xl px-4 py-3">
+              <option value="">All Cities</option>
+              {city && !filterOptions.cities.includes(city) && <option value={city}>{city}</option>}
+              {filterOptions.cities.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select aria-label="Source Types" value={sourceType}
+              onChange={(e) => { setSourceType(e.target.value); }}
+              disabled={filterOptionsLoading}
+              className="w-full min-w-0 bg-slate-100 rounded-xl px-4 py-3">
+              <option value="">All Source Types</option>
+              {sourceType && !filterOptions.sourceTypes.includes(sourceType) && <option value={sourceType}>{sourceType}</option>}
+              {filterOptions.sourceTypes.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select aria-label="Property Types" value={propertyType}
+              onChange={(e) => { setPropertyType(e.target.value); }}
+              disabled={filterOptionsLoading}
+              className="w-full min-w-0 bg-slate-100 rounded-xl px-4 py-3">
+              <option value="">All Property Types</option>
+              {propertyType && !filterOptions.propertyTypes.includes(propertyType) && <option value={propertyType}>{propertyType}</option>}
+              {filterOptions.propertyTypes.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select aria-label="Budgets" value={budget}
+              onChange={(e) => { setBudget(e.target.value); }}
+              disabled={filterOptionsLoading}
+              className="w-full min-w-0 bg-slate-100 rounded-xl px-4 py-3">
+              <option value="">All Budgets</option>
+              {budget && !filterOptions.budgets.includes(budget) && <option value={budget}>{budget}</option>}
+              {filterOptions.budgets.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select aria-label="Brand IDs" value={brandId}
+              onChange={(e) => { setBrandId(e.target.value); }}
+              disabled={filterOptionsLoading}
+              className="w-full min-w-0 bg-slate-100 rounded-xl px-4 py-3">
+              <option value="">All Brand IDs</option>
+              {brandId && !filterOptions.brands.includes(brandId) && <option value={brandId}>{brandId}</option>}
+              {filterOptions.brands.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+            <select aria-label="Duplicate leads" value={isDuplicate} onChange={(e) => setIsDuplicate(e.target.value)} className="bg-slate-100 rounded-xl px-4 py-3">
+              <option value="">All Lead Types</option>
+              <option value="true">Duplicate Leads</option>
+              <option value="false">Non-duplicate Leads</option>
+            </select>
+          </div>
+        )}
+        <div className="flex items-center gap-3 mt-4">
+          <button type="button" onClick={handleResetFilters} className="bg-slate-200 rounded-xl px-4 py-2">Reset Filters</button>
+          {filterOptionsLoading && <span className="text-sm text-slate-500">Loading filter options...</span>}
         </div>
       </div>
 
       {/* TABLE */}
       <div className="bg-white rounded-xl shadow overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1400px]">
+          <table className="w-full min-w-[2050px]">
             <thead className="bg-slate-900 text-white">
               <tr>
                 <th className="px-6 py-5 text-left">
@@ -749,7 +864,17 @@ function LeadList({ mode }: Props) {
                 <th className="px-6 py-5 text-left">
                   Source
                 </th>
+                <th className="px-6 py-5 text-left whitespace-nowrap">
+                  Campaign Name
+                </th>
 
+                <th className="px-6 py-5 text-left whitespace-nowrap">
+                  Ad Set Name
+                </th>
+
+                <th className="px-6 py-5 text-left whitespace-nowrap">
+                  Ad Name
+                </th>
                 <th className="px-6 py-5 text-left">
                   Status
                 </th>
@@ -821,7 +946,29 @@ function LeadList({ mode }: Props) {
                   <td className="px-6 py-5">
                     {lead.source}
                   </td>
+                  <td className="px-6 py-5 text-sm min-w-[220px]">
+                    <span className={lead.campaignName
+                      ? "font-medium text-slate-700"
+                      : "text-slate-400"}>
+                      {lead.campaignName || "—"}
+                    </span>
+                  </td>
 
+                  <td className="px-6 py-5 text-sm min-w-[200px]">
+                    <span className={lead.adSetName
+                      ? "text-slate-700"
+                      : "text-slate-400"}>
+                      {lead.adSetName || "—"}
+                    </span>
+                  </td>
+
+                  <td className="px-6 py-5 text-sm min-w-[200px]">
+                    <span className={lead.adName
+                      ? "text-slate-700"
+                      : "text-slate-400"}>
+                      {lead.adName || "—"}
+                    </span>
+                  </td>
                   <td className="px-6 py-5">
                     <StatusBadge
                       status={lead.status}
@@ -966,9 +1113,9 @@ function LeadList({ mode }: Props) {
             </p>
 
             <select
-              value={selectedUserId}
+              value={assignUserId}
               onChange={(e) =>
-                setSelectedUserId(
+                setAssignUserId(
                   e.target.value
                 )
               }
@@ -981,9 +1128,7 @@ function LeadList({ mode }: Props) {
               {teamUsers
                 .filter((user: any) =>
                   [
-                    "admin",
-                    "sales_manager",
-                    "sales_executive",
+                                        "sales_executive",
                     "telecaller",
                   ].includes(
                     String(user.role)
@@ -1049,6 +1194,7 @@ function LeadList({ mode }: Props) {
           setReassignOpen(false);
           setReassignLeadId(null);
           fetchLeads({ force: true });
+          setOptionsVersion((v) => v + 1);
         }}
       />
 
@@ -1061,6 +1207,7 @@ function LeadList({ mode }: Props) {
         onImported={() => {
           setImportOpen(false);
           fetchLeads({ force: true });
+          setOptionsVersion((v) => v + 1);
         }}
       />
     </div>

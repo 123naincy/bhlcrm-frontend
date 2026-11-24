@@ -246,3 +246,14 @@ export const deleteLead = async (id: string) => {
   const response = await api.delete(`/leads/${id}`);
   return response.data;
 };
+
+export const getLeadFilterOptions = async (
+  params: any = {}
+) => {
+  const response = await api.get(
+    "/leads/filter-options",
+    { params }
+  );
+
+  return response.data;
+};
