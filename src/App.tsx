@@ -16,12 +16,18 @@ import InventoryDashboard from "./pages/inventory/InventoryDashboard";
 import InventoryUnitDetails from "./pages/inventory/InventoryUnitDetails";
 import BookingList from "./pages/booking/BookingList";
 import BookingDetails from "./pages/booking/BookingDetails";
+import PrivacyPolicy from "./pages/legal/PrivacyPolicy";
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         {/* PUBLIC */}
+
         <Route path="/login" element={<LoginPage />} />
+
+        <Route
+          path="/privacy-policy"
+          element={<PrivacyPolicy />} />
 
         {/* PROTECTED */}
         <Route
